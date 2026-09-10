@@ -1,6 +1,7 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';
 import {size,phoneLayout,render,themes} from '../src/render.js';
 import {defaults,validateProject} from '../src/model.js';
+test('uncertain imported video keeps the entire source instead of inventing a crop',()=>{const draws=[],ctx={createLinearGradient:()=>({addColorStop(){}}),fillRect(){},drawImage:(...a)=>draws.push(a)};const g=render({width:1206,height:2622,getContext:()=>ctx},{},3840,2160,{settings:{...defaults,ratio:'phone',theme:'black'},points:[],clips:[{start:0,end:8}]},2);assert.deepEqual(g.crop,{x:0,y:0,w:3840,h:2160});assert.equal(draws.length,1);});
 test('phone output matches native display and every layout preserves complete source within safe margins',()=>{
  assert.deepEqual(size('phone',1206),[1206,2622]);
  for(const ratio of ['wide','portrait','square','phone'])for(const res of [720,1080,1206,2160])assert(size(ratio,res).every(n=>n>0&&n%2===0));

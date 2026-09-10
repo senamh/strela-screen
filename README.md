@@ -1,5 +1,9 @@
 # Strela Screen
 
+**Latest: 0.4.0 — automatic import.** Importing a video now runs local visual-change analysis, applies the black phone layout and immediately renders MP4. No manual focus setup or Export click is required. Download is still an explicit user action. `.strela` imports restore saved edits without reprocessing. Try demo uses the same video-import pipeline, without pre-supplied click cues.
+
+Analysis is a conservative frame-difference heuristic using Mediabunny decoding: dominant local changes become focus points; broad/scattered motion and scene cuts are rejected. It is not OCR, semantic understanding or guaranteed cursor recognition. When no reliable focus is found (or analysis fails), the full source is retained without an invented crop. Review generated focus before sharing. Processing and rendering can each be cancelled; the original remains available.
+
 **Latest: 0.3.0 mobile beta.** See [MOBILE.md](MOBILE.md): iPhone preset, full-source overview plus smooth detail view, native-size 1206×2622 MP4, true black background, no click waves or synthetic click sounds. Earlier 0.2 verification below is historical; physical iPhone testing is not claimed.
 
 Private development repository for a local-first screen recorder and styled video editor. **0.2.0 is a browser beta, not a finished native Screen Studio replacement.**

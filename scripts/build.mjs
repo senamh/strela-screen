@@ -1,7 +1,7 @@
 import {build} from 'esbuild';
 import {mkdir,copyFile,cp} from 'node:fs/promises';
 const dir='dist/strela-screen';await mkdir(dir,{recursive:true});
-await build({entryPoints:{app:'src/app.js','export-worker':'src/export-worker.js','archive-worker':'src/archive-worker.js',background:'src/background.js',tracker:'src/tracker.js',popup:'src/popup.js'},outdir:dir,bundle:true,format:'esm',target:'chrome116',legalComments:'eof',minify:false});
+await build({entryPoints:{app:'src/app.js','export-worker':'src/export-worker.js','archive-worker':'src/archive-worker.js','analysis-worker':'src/analysis-worker.js',background:'src/background.js',tracker:'src/tracker.js',popup:'src/popup.js'},outdir:dir,bundle:true,format:'esm',target:'chrome116',legalComments:'eof',minify:false});
 for(const name of ['editor.html','editor.css','popup.html','popup.css','manifest.json','capture-check.html','capture-check.js'])await copyFile('ui/'+name,dir+'/'+name);
 await mkdir(dir+'/licenses',{recursive:true});
 for(const name of ['mediabunny','fflate','gifenc'])await copyFile('node_modules/'+name+(name==='gifenc'?'/LICENSE.md':'/LICENSE'),dir+'/licenses/'+name+'.txt');

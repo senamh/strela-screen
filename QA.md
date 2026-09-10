@@ -1,5 +1,11 @@
 # QA evidence — 0.2.0
 
+## 0.4.0 automatic-import check
+
+22 automated tests pass. Browser check: the original 8-second sample is constructed as a real WebM File and passed to exactly the same importMedia function used by the file picker, without click cues. Visual analysis generated 3 focus points (1, 4, 7 seconds), applied the phone/black settings and automatically rendered MP4 1206×2622, 8.00 seconds. Duration/dimensions/audio-track validation passed. No manual focus, preset selection or Export click was used. This checks the shared processing pipeline, not the native file-picker dialog or extension installation.
+
+Additional tests reject static frames, tiny blinking pixels, global changes and equally distributed changes. Uncertain input renders the complete source. Localized changes can still be semantically irrelevant; no claim of OCR or general cursor recognition is made. Windows/physical-iPhone testing remains outstanding.
+
 Date: 2026-09-10. Environment: macOS, Chrome, studio served at 127.0.0.1:4173. Only Strela's original fixtures were recorded; no user desktop content was captured for testing.
 
 ## Automated
