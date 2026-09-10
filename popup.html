@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Strela Screen</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div class="brand"><span class="brand-mark">↗</span><span>strela</span></div>
+        <span class="status-pill" id="status">Ready</span>
+      </header>
+
+      <section class="hero">
+        <p class="eyebrow">AUTOMATIC SCREEN DEMOS</p>
+        <h1>Make every<br />screen recording <em>flow.</em></h1>
+        <p class="intro">Capture any window or screen. Strela turns it into a smooth, focused story.</p>
+      </section>
+
+      <section class="source-section" aria-label="Recording source">
+        <span class="section-label">RECORD</span>
+        <div class="source-grid" id="source-grid">
+          <button class="source-card selected" data-source="screen" type="button">
+            <span class="source-icon">▣</span><span>Screen</span><small>Any display</small>
+          </button>
+          <button class="source-card" data-source="window" type="button">
+            <span class="source-icon">□</span><span>Window</span><small>One app</small>
+          </button>
+          <button class="source-card" data-source="tab" type="button">
+            <span class="source-icon">◱</span><span>Tab</span><small>Browser only</small>
+          </button>
+        </div>
+      </section>
+
+      <section class="options">
+        <label class="option-row"><span><b>Microphone</b><small>Record your voice</small></span><input id="microphone" type="checkbox" role="switch" /></label>
+        <label class="option-row"><span><b>Show clicks</b><small>For automatic camera cues</small></span><input id="clicks" type="checkbox" role="switch" checked /></label>
+      </section>
+
+      <button class="record-button" id="record-button" type="button"><span class="record-dot"></span><span id="record-label">Start recording</span><kbd>⌥ R</kbd></button>
+      <p class="hint" id="hint">Choose a source, then select it in Chrome's secure picker.</p>
+      <p class="hint"><a href="editor.html" target="_blank">Open Strela Studio · import a video</a></p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
