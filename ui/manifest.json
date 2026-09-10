@@ -1,0 +1,11 @@
+{
+  "manifest_version":3,
+  "name":"Strela Screen",
+  "version":"0.2.0",
+  "description":"Local screen recording, smooth focus transitions and styled MP4 exports.",
+  "minimum_chrome_version":"116",
+  "action":{"default_title":"Strela Screen","default_popup":"popup.html"},
+  "background":{"service_worker":"background.js","type":"module"},
+  "permissions":["activeTab","scripting","tabCapture","storage"],
+  "content_security_policy":{"extension_pages":"script-src 'self'; object-src 'self'"}
+}

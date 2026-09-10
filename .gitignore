@@ -4,5 +4,7 @@ node_modules/
 .env.*
 !.env.example
 outputs/
+dist/
+work/
 *.webm
 *.mp4

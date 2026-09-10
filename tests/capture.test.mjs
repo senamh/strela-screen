@@ -1,0 +1,2 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {Capture} from '../src/capture.js';
+test('paused intervals do not shift click cues out of sync',()=>{const c=new Capture(()=>{},()=>{});c.started=1000;c.pauses=[{start:3000,end:5000},{start:7000}];assert.equal(c.eventTime(2000),1);assert.equal(c.eventTime(3500),null);assert.equal(c.eventTime(6000),3);assert.equal(c.eventTime(7500),null);assert.equal(c.eventTime(900),null);});

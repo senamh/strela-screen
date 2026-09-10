@@ -1,24 +1,76 @@
 # Strela Screen
 
-The first Strela Screen prototype is a Chrome/Edge Manifest V3 extension that records a whole display, individual app window, or browser tab. It deliberately uses Chrome's secure source picker: the extension never chooses a screen on the user's behalf.
+Private development repository for a local-first screen recorder and styled video editor. **0.2.0 is a browser beta, not a finished native Screen Studio replacement.**
 
-## Run locally
+## Implemented
 
-1. Open `chrome://extensions` (or `edge://extensions`).
-2. Enable Developer mode.
-3. Choose **Load unpacked** and select this folder.
-4. Open Strela, choose Screen, Window, or Tab, then start recording.
+- Record a screen, application window or browser tab using the browser's permission flow. Pause/resume, microphone and source audio mixing, save the original recording.
+- For an explicitly selected extension source tab: collect click coordinates and generate editable automatic focus points. Screen/window recordings support manual focus, not global click tracking.
+- Shared preview/export renderer: smooth zoom and pan, blended overlapping focus points, click highlights, rounded corners, shadows, four backgrounds, landscape/portrait/square framing.
+- Timeline: split, remove, trim, undo/redo. Source video is unchanged.
+- Local project library with autosave; portable `.strela` backup including video and edits. Interrupted recordings keep recovery chunks when storage is available.
+- Offline worker rendering: MP4 (H.264/AAC), WebM (VP9/Opus), 720p/1080p/2160p and 30/60 fps, subject to codecs and memory. Export can continue while another tab is active. Cancellation terminates the worker.
+- GIF: 15 fps, 360-pixel shortest edge, maximum 60 seconds, no audio. Color quantization is inherently lower fidelity than MP4/WebM.
+- Original 8-second sample with audio and click cues: **Try demo**.
 
-Recorded WebM files are downloaded locally. The next milestone is the Strela Auto Director: event sidecars, smooth camera paths, polished cursor rendering, and MP4/GIF export.
+No account, server, uploads, analytics or cloud rendering is required. Videos remain in the browser profile unless downloaded. Removing the extension or clearing browser data can remove the local library: keep `.strela` backups.
 
-## Current boundary
+## Install the extension
 
-The browser can capture desktop screens and application windows. Perfect system-audio capture varies by operating system and source chosen in the browser's picker; it is not guaranteed in this prototype.
+Use the supplied release ZIP, or build from source:
 
-## Studio prototype
+```sh
+npm ci
+npm run build
+npm test
+```
 
-Open **Open Strela Studio** from the popup. Import a video or record from the studio, pause and click the preview to place manual focus points, adjust zoom strength, then export styled WebM. Export runs in real time and cancels when the tab is hidden.
+1. Open `chrome://extensions` or `edge://extensions`.
+2. Enable Developer mode → **Load unpacked** → select **dist/strela-screen**. With the ZIP, extract it and select its **strela-screen** folder. Do not select the source repository root.
+3. On the page to record, open Strela's popup → **Open studio**.
+4. Choose **Record → Browser tab** for that source tab and automatic click cues. For a display or app, choose **Screen** or **Window**, then select the actual source in the browser picker.
+5. Stop recording, edit the timeline/focus, choose **Export video**, then watch or download.
 
-Automatic event detection, synthetic cursor replacement, MP4 export, and end-to-end Chrome/Edge validation are still pending. The original popup/offscreen capture path is experimental; use the studio recording button for the current development workflow.
+The mode is a picker preference, not a bypass of source selection. Chrome 116+ is the declared API minimum; use current Chrome/Edge. Safari and Firefox are not supported by this extension build.
 
-Run camera tests with `node motion.test.cjs`. No third-party project code has been imported yet; open-source candidates discussed during planning remain candidates, not dependencies.
+## Try without installing
+
+```sh
+npm run build
+npm run dev
+```
+
+Open `http://127.0.0.1:4173`. Import a video or use **Try demo**. Browser-picker recording works; automatic source-tab click tracking requires the extension. A safe recording fixture is at `/capture-check.html`. Localhost and the extension have separate project storage.
+
+## Open-source code actually reused
+
+| Library | Actual role | Pinned version |
+|---|---|---|
+| Mediabunny | Decode, encode, audio samples, MP4/WebM containers | 1.56.1 |
+| fflate | Portable project ZIP packing/unpacking | 0.8.3 |
+| gifenc | GIF encoding and palettes | 1.0.3 |
+| esbuild | Extension bundling, development only | 0.28.2 |
+
+See `THIRD_PARTY_NOTICES.md` and distributed `licenses/` for notices and source locations. Dependencies are pinned in `package-lock.json`. No code/assets from Screen Studio, OpenScreen, Flowtake, Recordly or Reframed were imported. Recording lifecycle, timeline, camera, UI and original demo artwork are Strela code.
+
+## Structure
+
+```text
+src/       recorder, model, renderer, exporter, storage, extension messaging
+ui/        studio, popup, Manifest V3, safe recording fixture
+scripts/   build and localhost preview
+tests/     model, archives, timing, routing and package checks
+dist/      generated extension (not committed)
+outputs/   handoff builds (not committed)
+```
+
+## Boundaries
+
+- **Not yet independently tested on Windows/Edge or as a loaded extension.** macOS Chrome localhost checks and automated tests are in `QA.md`; they do not certify the extension-only permission path.
+- An extension cannot obtain global mouse coordinates from arbitrary desktop applications. System-wide auto-focus and reconstructed/smoothed cursor need a native companion; it is **not included**. The source's recorded cursor remains in the video.
+- Click tracking is limited to the selected accessible page, excludes cross-origin iframes and browser-internal pages, and may stop after navigation. No typed text, keystrokes or page content is collected.
+- Microphone/desktop audio depends on browser, OS, source and permissions. A source may provide a silent audio track; track detection alone does not establish audibility.
+- Large exports and archives use memory. 4K/long-recording performance and recovery after forced browser termination are not release-qualified. Start with short 1080p recordings.
+- Webcam, subtitles, native installers, signing, store publication and automatic updates are not implemented.
+
+See `RELEASE_CHECKLIST.md` for the remaining production-release requirements.

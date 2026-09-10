@@ -1,0 +1,1 @@
+let count=0;document.querySelector('#button').onclick=()=>document.querySelector('#count').textContent=++count+' tasks completed';setInterval(()=>document.querySelector('#clock').textContent=new Date().toLocaleTimeString(),1000);

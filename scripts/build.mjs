@@ -1,0 +1,11 @@
+import {build} from 'esbuild';
+import {mkdir,copyFile,cp} from 'node:fs/promises';
+const dir='dist/strela-screen';await mkdir(dir,{recursive:true});
+await build({entryPoints:{app:'src/app.js','export-worker':'src/export-worker.js','archive-worker':'src/archive-worker.js',background:'src/background.js',tracker:'src/tracker.js',popup:'src/popup.js'},outdir:dir,bundle:true,format:'esm',target:'chrome116',legalComments:'eof',minify:false});
+for(const name of ['editor.html','editor.css','popup.html','popup.css','manifest.json','capture-check.html','capture-check.js'])await copyFile('ui/'+name,dir+'/'+name);
+await mkdir(dir+'/licenses',{recursive:true});
+for(const name of ['mediabunny','fflate','gifenc'])await copyFile('node_modules/'+name+(name==='gifenc'?'/LICENSE.md':'/LICENSE'),dir+'/licenses/'+name+'.txt');
+await copyFile('THIRD_PARTY_NOTICES.md',dir+'/THIRD_PARTY_NOTICES.md');
+for(const name of ['INSTALL_RU.md','QA.md','RELEASE_CHECKLIST.md'])await copyFile(name,dir+'/'+name);
+await mkdir('outputs/strela-screen',{recursive:true});await cp(dir,'outputs/strela-screen',{recursive:true});
+console.log('Built dist/strela-screen and outputs/strela-screen');
