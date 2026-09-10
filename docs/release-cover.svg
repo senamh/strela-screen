@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+<rect width="1280" height="640" fill="#080a08"/>
+<rect x="62" y="62" width="66" height="66" rx="18" fill="#cffb8f"/>
+<path d="M82 108l28-28m-25 0h25v25" fill="none" stroke="#17210e" stroke-width="6"/>
+<g font-family="Arial,Helvetica,sans-serif" fill="#f0f4e9"><text x="150" y="111" font-size="46" font-weight="700">strela screen</text><text x="62" y="255" font-size="62" font-weight="700">Your screen.</text><text x="62" y="326" font-size="62" font-weight="700">Ready for a phone.</text><text x="66" y="388" font-size="24" fill="#a4ae99">Import. Auto-focus. Export.</text><text x="66" y="533" font-size="18" fill="#cffb8f">FREE PUBLIC BETA  /  0.4</text><text x="66" y="570" font-size="16" fill="#a4ae99">Local processing · MP4 · Editable focus</text></g>
+<rect x="882" y="51" width="267" height="538" rx="40" fill="#171d14" stroke="#45513a" stroke-width="2"/><rect x="896" y="66" width="239" height="508" rx="30" fill="#000"/>
+<rect x="915" y="113" width="201" height="114" rx="3" fill="#f2f5ed"/><rect x="928" y="127" width="34" height="87" fill="#dce4d4"/><g fill="#abc193"><rect x="972" y="137" width="39" height="24"/><rect x="1020" y="137" width="39" height="24"/><rect x="1068" y="137" width="35" height="24"/><rect x="975" y="192" width="18" height="20"/><rect x="1004" y="180" width="18" height="32"/><rect x="1033" y="188" width="18" height="24"/><rect x="1062" y="170" width="18" height="42"/></g>
+<rect x="915" y="245" width="201" height="277" rx="3" fill="#f2f5ed"/><rect x="934" y="267" width="110" height="9" rx="4" fill="#35432e"/><rect x="934" y="291" width="73" height="6" rx="3" fill="#85977a"/><g fill="#abc193"><rect x="935" y="398" width="34" height="99"/><rect x="981" y="366" width="34" height="131"/><rect x="1027" y="383" width="34" height="114"/><rect x="1073" y="341" width="24" height="156"/></g>
+<path d="M740 317h74m-19-19l19 19-19 19" stroke="#cffb8f" stroke-width="4" fill="none"/>
+<text x="928" y="551" font-family="Arial,sans-serif" font-size="11" fill="#85977a">OVERVIEW + DETAIL · ILLUSTRATION</text></svg>
