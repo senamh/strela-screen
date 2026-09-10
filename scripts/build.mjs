@@ -6,6 +6,6 @@ for(const name of ['editor.html','editor.css','popup.html','popup.css','manifest
 await mkdir(dir+'/licenses',{recursive:true});
 for(const name of ['mediabunny','fflate','gifenc'])await copyFile('node_modules/'+name+(name==='gifenc'?'/LICENSE.md':'/LICENSE'),dir+'/licenses/'+name+'.txt');
 await copyFile('THIRD_PARTY_NOTICES.md',dir+'/THIRD_PARTY_NOTICES.md');
-for(const name of ['INSTALL_RU.md','QA.md','RELEASE_CHECKLIST.md'])await copyFile(name,dir+'/'+name);
+for(const name of ['INSTALL_RU.md','QA.md','RELEASE_CHECKLIST.md','MOBILE.md'])await copyFile(name,dir+'/'+name);
 await mkdir('outputs/strela-screen',{recursive:true});await cp(dir,'outputs/strela-screen',{recursive:true});
 console.log('Built dist/strela-screen and outputs/strela-screen');

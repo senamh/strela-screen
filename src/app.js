@@ -18,7 +18,7 @@ function editing(){return !!project&&!busy;}
 function download(data,name){const u=URL.createObjectURL(data),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),60000);}
 function filename(){return (project?.name||'strela').replace(/[^\p{L}\p{N}_ -]/gu,'').trim().slice(0,70)||'strela';}
 function setBusy(value){busy=value;document.querySelectorAll('main button,main input,main select,.topbar button,.topbar input').forEach(e=>e.disabled=value);refreshButtons();}
-function refreshButtons(){for(const id of ['play','back','seek','save','export','original','split','trim','trim-start','trim-end'])$(id).disabled=!project||busy;$('delete-clip').disabled=!project||busy||project.clips.length<2;$('auto').disabled=!project||busy||!project.events.length;$('undo').disabled=busy||!history.past.length;$('redo').disabled=busy||!history.future.length;}
+function refreshButtons(){for(const id of ['play','back','seek','save','export','original','split','trim','trim-start','trim-end'])$(id).disabled=!project||busy;$('delete-clip').disabled=!project||busy||project.clips.length<2;$('auto').disabled=!project||busy||!project.events.length;$('undo').disabled=busy||!history.past.length;$('redo').disabled=busy||!history.future.length;for(const key of ['padding','shadow'])document.querySelector('[data-setting='+key+']').disabled=busy||project?.settings.ratio==='phone';}
 function stopPlayback(){video.pause();$('play').textContent='▶';}
 function currentSnapshot(){return structuredClone(project);}
 function saveLocal(){
@@ -67,7 +67,7 @@ video.addEventListener('error',()=>say('Video playback failed. Save the original
 $('play').onclick=async()=>{if(!editing())return;if(!video.paused)stopPlayback();else{if(time>=duration(project.clips)-.05)seekTo(0);try{await video.play();$('play').textContent='❚❚';}catch(e){say(e.message);}}};
 $('back').onclick=()=>{stopPlayback();seekTo(0);};$('seek').oninput=()=>{stopPlayback();seekTo(Number($('seek').value));};
 canvas.onclick=e=>{
-  if(!editing()||!video.paused||!geometry)return;const b=canvas.getBoundingClientRect(),x=(e.clientX-b.left)*canvas.width/b.width,y=(e.clientY-b.top)*canvas.height/b.height,g=geometry;
+  if(!editing()||!video.paused||!geometry)return;const b=canvas.getBoundingClientRect(),x=(e.clientX-b.left)*canvas.width/b.width,y=(e.clientY-b.top)*canvas.height/b.height,o=geometry.overview,g=o&&x>=o.x&&x<=o.x+o.w&&y>=o.y&&y<=o.y+o.h?o:geometry;
   if(x<g.x||y<g.y||x>g.x+g.w||y>g.y+g.h)return;
   edit(()=>project.points.push({id:crypto.randomUUID(),t:video.currentTime,x:(g.crop.x+(x-g.x)/g.w*g.crop.w)/project.width,y:(g.crop.y+(y-g.y)/g.h*g.crop.h)/project.height,auto:false}));
 };
@@ -80,7 +80,7 @@ $('redo').onclick=()=>{if(!editing())return;stopPlayback();project=history.redo(
 $('name').onchange=()=>edit(()=>project.name=$('name').value.trim()||'Untitled demo');
 document.querySelectorAll('[data-setting]').forEach(e=>e.onchange=()=>{const value=e.type==='checkbox'?e.checked:e.tagName==='SELECT'?e.value:Number(e.value);edit(()=>project.settings[e.dataset.setting]=value);});
 document.querySelectorAll('[data-theme]').forEach(e=>e.onclick=()=>edit(()=>project.settings.theme=e.dataset.theme));
-$('preset').onchange=()=>{const preset=$('preset').value;edit(()=>Object.assign(project.settings,preset==='tutorial'?{zoom:2,hold:2.8,ratio:'wide',theme:'mint'}:preset==='social'?{zoom:1.5,hold:1.4,ratio:'portrait',theme:'sunset'}:{zoom:1.7,hold:2,ratio:'wide',theme:'lavender'}));};
+$('preset').onchange=()=>{const preset=$('preset').value;edit(()=>Object.assign(project.settings,preset==='phone'?{ratio:'phone',theme:'black',padding:0,radius:0,zoom:1.3,hold:2.8,shadow:false,clicks:false,resolution:1206,fps:60}:preset==='tutorial'?{zoom:2,hold:2.8,ratio:'wide',theme:'mint'}:preset==='social'?{zoom:1.5,hold:1.4,ratio:'portrait',theme:'sunset'}:{zoom:1.7,hold:2,ratio:'wide',theme:'lavender'}));};
 $('original').onclick=()=>download(blob,filename()+'-original.'+(blob.type.includes('mp4')?'mp4':'webm'));
 $('file').onchange=async e=>{const file=e.target.files[0];if(!file||busy)return;setBusy(true);try{await saveLocal();if(file.name.endsWith('.strela')){const saved=await readArchive(file);await openMedia(saved.blob,saved.project);}else await openMedia(file);}catch(e){say(e.message);}finally{e.target.value='';setBusy(false);}};
 $('save').onclick=async()=>{if(!editing())return;setBusy(true);try{say('Packing project and original video…');download(await projectArchive(project,blob),filename()+'.strela');say('Project backup ready. It includes the original video.');}catch(e){say(e.message);}finally{setBusy(false);}};
@@ -99,7 +99,7 @@ $('start-record').onclick=async()=>{
 };
 $('pause-record').onclick=()=>capture.pause();$('stop-record').onclick=()=>capture.stop();
 $('demo').onclick=async()=>{if(busy)return;setBusy(true);$('progress-title').textContent='Preparing a sample story…';$('progress-label').textContent='Creating an original 8-second clip with audio';$('progress').value=0;$('cancel').hidden=true;$('progress-dialog').showModal();try{const sample=await demo(p=>$('progress').value=p);await openMedia(sample.blob,null,sample.events);project.name='Fieldnotes · product demo';refresh();await saveLocal();}catch(e){say(e.message);}finally{$('progress-dialog').close();setBusy(false);}};
-$('export').onclick=()=>{if(!editing())return;$('resolution').value=project.settings.resolution;$('fps').value=project.settings.fps;$('export-dialog').showModal();};
+$('export').onclick=()=>{if(!editing())return;$('resolution').value=project.settings.resolution;$('fps').value=project.settings.fps;$('quality-note').textContent='Small text: use MP4 and a 1440p/4K source. Phone mode keeps the full frame above the detail. Upscaling cannot restore missing detail.';$('export-dialog').showModal();};
 $('format').onchange=()=>{$('resolution').disabled=$('fps').disabled=$('format').value==='gif';};
 function finishExport(){worker?.terminate();worker=null;$('progress-dialog').close();setBusy(false);}
 $('cancel').onclick=()=>{finishExport();say('Export cancelled. Your project is unchanged.');};

@@ -22,7 +22,7 @@ self.onmessage=async({data})=>{
     }
     const [w,h]=size(p.settings.ratio,p.settings.resolution),codec=mp4?'avc':'vp9';
     if(!await canEncodeVideo(codec,{width:w,height:h}))throw new Error((mp4?'H.264':'VP9')+' encoding is unavailable at this resolution. Try 720p or the other format.');
-    const canvas=new OffscreenCanvas(w,h),source=new CanvasSource(canvas,{codec,quality:new Quality('high')});
+    const canvas=new OffscreenCanvas(w,h),source=new CanvasSource(canvas,{codec,bitrate:Math.max(12000000,Math.min(100000000,Math.round(w*h*fps*.18)))});
     const target=new BufferTarget();output=new Output({format:mp4?new Mp4OutputFormat({fastStart:'in-memory'}):new WebMOutputFormat(),target});
     output.addVideoTrack(source,{frameRate:fps});
     let audioSource,rate,channels;

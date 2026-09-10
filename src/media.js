@@ -10,7 +10,7 @@ export async function demo(onProgress){
   const target=new BufferTarget(),out=new Output({format:new WebMOutputFormat(),target}),video=new CanvasSource(canvas,{codec:'vp8',quality:new Quality('medium')}),audio=new AudioBufferSource({codec:'opus',quality:new Quality('medium')});
   out.addVideoTrack(video,{frameRate:30});out.addAudioTrack(audio);await out.start();
   const clicks=[{type:'click',t:1.5,x:.25,y:.33},{type:'click',t:3.5,x:.72,y:.6},{type:'click',t:5.8,x:.8,y:.2}];
-  const sound=new AudioBuffer({length:48000*8,sampleRate:48000,numberOfChannels:1});const samples=sound.getChannelData(0);for(let i=0;i<samples.length;i++){const t=i/48000;for(const c of clicks){const d=t-c.t;if(d>=0&&d<.12)samples[i]=Math.sin(d*Math.PI*2*660)*.15*Math.exp(-d*30);}}
+  const sound=new AudioBuffer({length:48000*8,sampleRate:48000,numberOfChannels:1});// No synthetic click sounds.
   const audioJob=audio.add(sound).then(()=>audio.close());
   for(let f=0;f<240;f++){
     const t=f/30;ctx.fillStyle='#f5f6f2';ctx.fillRect(0,0,1280,720);ctx.fillStyle='#fff';ctx.fillRect(0,0,240,720);ctx.fillStyle='#253522';ctx.font='bold 28px sans-serif';ctx.fillText('Fieldnotes',28,60);ctx.font='18px sans-serif';['Overview','Projects','Your team','Settings'].forEach((s,i)=>ctx.fillText(s,28,140+i*58));ctx.font='bold 34px sans-serif';ctx.fillText('A clearer picture.',290,84);ctx.fillStyle='#d7eac5';ctx.fillRect(1030,40,190,54);ctx.fillStyle='#263b23';ctx.font='18px sans-serif';ctx.fillText('New project +',1050,74);

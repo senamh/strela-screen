@@ -1,4 +1,4 @@
-export const defaults = {theme:'lavender',ratio:'wide',padding:64,radius:20,zoom:1.7,hold:2,shadow:true,clicks:true,volume:1,fps:30,resolution:1080};
+export const defaults = {theme:'lavender',ratio:'wide',padding:64,radius:20,zoom:1.7,hold:2,shadow:true,clicks:false,volume:1,fps:30,resolution:1080};
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export const ease=x=>{x=clamp(x,0,1);return x*x*x*(x*(x*6-15)+10);};
 export function duration(clips){return clips.reduce((n,c)=>n+(c.end-c.start),0);}
@@ -24,9 +24,9 @@ export function validateProject(raw){
   if(raw.clips.some((c,i)=>i>0&&c.start<raw.clips[i-1].end))throw new Error('Clip ranges must be ordered and non-overlapping.');
   if(!Array.isArray(raw.points)||raw.points.length>10000||raw.points.some(p=>!Number.isFinite(p.t)||p.t<0||p.t>raw.duration||!Number.isFinite(p.x)||!Number.isFinite(p.y)||p.x<0||p.x>1||p.y<0||p.y>1))throw new Error('Invalid focus points.');
   const s={...defaults,...raw.settings};
-  if(!['wide','portrait','square'].includes(s.ratio)||!['lavender','mint','sunset','midnight'].includes(s.theme))throw new Error('Invalid visual settings.');
+  if(!['wide','portrait','square','phone'].includes(s.ratio)||!['lavender','mint','sunset','midnight','black'].includes(s.theme))throw new Error('Invalid visual settings.');
   for(const [key,min,max] of [['padding',0,180],['radius',0,80],['zoom',1,3],['hold',.8,5],['volume',0,2]]){if(!Number.isFinite(s[key])||s[key]<min||s[key]>max)throw new Error('Invalid '+key);}
-  if(![30,60].includes(s.fps)||![720,1080,2160].includes(s.resolution))throw new Error('Invalid export settings.');
+  if(![30,60].includes(s.fps)||![720,1080,1206,2160].includes(s.resolution))throw new Error('Invalid export settings.');
   const events=Array.isArray(raw.events)?raw.events.filter(e=>e.type==='click'&&Number.isFinite(e.t)&&e.t>=0&&e.t<=raw.duration&&Number.isFinite(e.x)&&Number.isFinite(e.y)&&e.x>=0&&e.x<=1&&e.y>=0&&e.y<=1).slice(0,10000):[];
   return {...raw,name:String(raw.name||'Untitled').slice(0,100),settings:s,events};
 }

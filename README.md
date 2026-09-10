@@ -1,5 +1,7 @@
 # Strela Screen
 
+**Latest: 0.3.0 mobile beta.** See [MOBILE.md](MOBILE.md): iPhone preset, full-source overview plus smooth detail view, native-size 1206×2622 MP4, true black background, no click waves or synthetic click sounds. Earlier 0.2 verification below is historical; physical iPhone testing is not claimed.
+
 Private development repository for a local-first screen recorder and styled video editor. **0.2.0 is a browser beta, not a finished native Screen Studio replacement.**
 
 ## Implemented
