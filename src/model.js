@@ -1,4 +1,7 @@
-export const defaults = {theme:'lavender',ratio:'wide',padding:64,radius:20,zoom:1.7,hold:2,shadow:true,clicks:false,volume:1,fps:30,resolution:1080};
+export const defaults = {theme:'lavender',ratio:'wide',padding:64,radius:20,zoom:1.7,hold:2,shadow:true,clicks:false,volume:1,fps:30,resolution:1080,size:'balanced'};
+// Target bits per pixel per frame and the floor for each export size. Screen footage is mostly static,
+// so variable-bitrate files stay well below the target; 'best' keeps the 0.4.x rate.
+export const SIZES={best:{bpp:.18,min:12e6},balanced:{bpp:.07,min:6e6},small:{bpp:.035,min:3e6}};
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export const ease=x=>{x=clamp(x,0,1);return x*x*x*(x*(x*6-15)+10);};
 export function duration(clips){return clips.reduce((n,c)=>n+(c.end-c.start),0);}
@@ -78,7 +81,7 @@ export function validateProject(raw){
   const s={...defaults,...raw.settings};
   if(!['wide','portrait','square','phone'].includes(s.ratio)||!['lavender','mint','sunset','midnight','black'].includes(s.theme))throw new Error('Invalid visual settings.');
   for(const [key,min,max] of [['padding',0,180],['radius',0,80],['zoom',1,3],['hold',.8,5],['volume',0,2]]){if(!Number.isFinite(s[key])||s[key]<min||s[key]>max)throw new Error('Invalid '+key);}
-  if(![30,60].includes(s.fps)||![720,1080,1206,2160].includes(s.resolution))throw new Error('Invalid export settings.');
+  if(![30,60].includes(s.fps)||![720,1080,1206,2160].includes(s.resolution)||!Object.hasOwn(SIZES,s.size))throw new Error('Invalid export settings.');
   const events=Array.isArray(raw.events)?raw.events.filter(e=>e.type==='click'&&Number.isFinite(e.t)&&e.t>=0&&e.t<=raw.duration&&Number.isFinite(e.x)&&Number.isFinite(e.y)&&e.x>=0&&e.x<=1&&e.y>=0&&e.y<=1).slice(0,10000):[];
   return {...raw,name:String(raw.name||'Untitled').slice(0,100),settings:s,events};
 }

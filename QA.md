@@ -1,5 +1,13 @@
 # QA evidence — 0.2.0
 
+## 0.4.3 export file size
+
+Exports targeted 0.18 bits per pixel per frame (about 34 Mbit/s for 1206×2622 at 60 fps). A File size choice now sets the target: Best keeps that rate, Balanced (default) uses 0.07 and Small 0.035, with floors of 12, 6 and 3 Mbit/s. Encoding stays variable-bitrate H.264.
+
+Measured on a busy 60-second segment (20–80 s) of the owner's 2560×1440 recording, exported as 1206×2622 at 60 fps: Best 170.7 MB, Balanced 79.2 MB, Small 44.1 MB, each in about 28 seconds. Crops at 1:1 from the detail view at 10.5 s and 33 s showed no visible difference in UI text between the three. The full 7:57 export with Best was 1.11 GB, so Balanced should be roughly half that. `npm test`: 26 passing, including validation of the size presets.
+
+Date: 2026-09-11.
+
 ## 0.4.2 camera planner
 
 The old camera averaged every focus point whose window covered the current time. With points about 3 s apart, the frame parked halfway between two actions for about a second (centre 0.50 × 0.47 between points at 0.2 × 0.25 and 0.8 × 0.7), arrived 2 s early and left 0.5 s after the action. Narrow layouts returned to a slice through the source centre between points.

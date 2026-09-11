@@ -113,7 +113,7 @@ async function importMedia(file){if(!file||busy)return;setBusy(true);let renderA
   }
  }catch(error){say(error.name==='AbortError'?'Analysis cancelled. Original video remains available.':error.message);}
  finally{setBusy(false);}
- if(renderAfter){$('format').value='mp4';$('resolution').value='1206';$('fps').value='60';autoDownload=true;$('start-export').click();}
+ if(renderAfter){$('format').value='mp4';$('resolution').value='1206';$('fps').value='60';$('size').value=project.settings.size;autoDownload=true;$('start-export').click();}
 }
 $('file').onchange=async e=>{try{await importMedia(e.target.files[0]);}finally{e.target.value='';}};
 $('save').onclick=async()=>{if(!editing())return;setBusy(true);try{say('Packing project and original video…');download(await projectArchive(project,blob),filename()+'.strela');say('Project backup ready. It includes the original video.');}catch(e){say(e.message);}finally{setBusy(false);}};
@@ -134,13 +134,13 @@ $('start-record').onclick=async()=>{
 };
 $('pause-record').onclick=()=>capture.pause();$('stop-record').onclick=()=>capture.stop();
 $('demo').onclick=async()=>{if(busy)return;setBusy(true);$('progress-title').textContent='Preparing a sample story…';$('progress-label').textContent='Creating a sample for the automatic import pipeline';$('progress').value=0;$('cancel').hidden=true;$('progress-dialog').showModal();let sample;try{sample=await demo(p=>$('progress').value=p);}catch(e){say(e.message);}finally{$('progress-dialog').close();setBusy(false);}if(sample)await importMedia(new File([sample.blob],'Fieldnotes demo.webm',{type:sample.blob.type}));};
-$('export').onclick=()=>{if(!editing())return;$('resolution').value=project.settings.resolution;$('fps').value=project.settings.fps;$('quality-note').textContent='Small text: use MP4 and a 1440p/4K source. Phone mode keeps the full frame above the detail. Upscaling cannot restore missing detail.';$('export-dialog').showModal();};
-$('format').onchange=()=>{$('resolution').disabled=$('fps').disabled=$('format').value==='gif';};
+$('export').onclick=()=>{if(!editing())return;$('resolution').value=project.settings.resolution;$('fps').value=project.settings.fps;$('size').value=project.settings.size;$('quality-note').textContent='Small text: use MP4 and a 1440p/4K source. Phone mode keeps the full frame above the detail. Upscaling cannot restore missing detail.';$('export-dialog').showModal();};
+$('format').onchange=()=>{$('resolution').disabled=$('fps').disabled=$('size').disabled=$('format').value==='gif';};
 function finishExport(){worker?.terminate();worker=null;$('progress-dialog').close();setBusy(false);}
 $('cancel').onclick=()=>{if(analysisController){analysisController.abort();return;}finishExport();say('Export cancelled. Your project is unchanged.');};
 $('progress-dialog').addEventListener('cancel',e=>e.preventDefault());
 $('start-export').onclick=()=>{
-  if(!editing())return;stopPlayback();const format=$('format').value;project.settings.resolution=Number($('resolution').value);project.settings.fps=Number($('fps').value);saveLocal();$('export-dialog').close();setBusy(true);$('progress-title').textContent='Rendering your video…';$('progress-label').textContent='Preparing codecs';$('progress').value=0;$('cancel').hidden=false;$('cancel').textContent='Cancel export';$('progress-dialog').showModal();
+  if(!editing())return;stopPlayback();const format=$('format').value;project.settings.resolution=Number($('resolution').value);project.settings.fps=Number($('fps').value);project.settings.size=$('size').value;saveLocal();$('export-dialog').close();setBusy(true);$('progress-title').textContent='Rendering your video…';$('progress-label').textContent='Preparing codecs';$('progress').value=0;$('cancel').hidden=false;$('cancel').textContent='Cancel export';$('progress-dialog').showModal();
   $('export-result').hidden=true;
   // Only the automatic import render saves on its own; manual exports wait for Download.
   const saveAfter=autoDownload;autoDownload=false;

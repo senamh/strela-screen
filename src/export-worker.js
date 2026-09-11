@@ -1,5 +1,5 @@
 import {Input,BlobSource,ALL_FORMATS,CanvasSink,AudioSampleSink,AudioSample,Output,BufferTarget,CanvasSource,AudioSampleSource,Mp4OutputFormat,WebMOutputFormat,Quality,canEncodeVideo,canEncodeAudio} from 'mediabunny';
-import {duration,sourceTime,validateProject} from './model.js';
+import {duration,sourceTime,validateProject,SIZES} from './model.js';
 import {render,size} from './render.js';
 import {GIFEncoder,quantize,applyPalette} from 'gifenc';
 import {sampleFrames} from './frame-sampler.js';
@@ -26,7 +26,7 @@ self.onmessage=async({data})=>{
       if(mp4&&await canEncodeVideo('hevc',{width:w,height:h}))codec='hevc';
       else throw new Error(`${mp4?'H.264':'VP9'} encoding is unavailable at ${w}×${h}. Choose a lower resolution${mp4?' or WebM':''}.`);
     }
-    const canvas=new OffscreenCanvas(w,h),source=new CanvasSource(canvas,{codec,bitrate:Math.max(12000000,Math.min(100000000,Math.round(w*h*fps*.18)))});
+    const canvas=new OffscreenCanvas(w,h),sizing=SIZES[p.settings.size],source=new CanvasSource(canvas,{codec,bitrate:Math.max(sizing.min,Math.min(100000000,Math.round(w*h*fps*sizing.bpp)))});
     const target=new BufferTarget();output=new Output({format:mp4?new Mp4OutputFormat({fastStart:'in-memory'}):new WebMOutputFormat(),target});
     output.addVideoTrack(source,{frameRate:fps});
     let audioSource,rate,channels;
