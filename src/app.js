@@ -89,8 +89,8 @@ function focusReport(result){return result.error?'Analysis failed: '+result.erro
 $('auto').onclick=async()=>{
   if(!editing())return;
   if(project.events.length){edit(()=>project.points=[...project.points.filter(p=>!p.auto),...autoFocus(project.events)]);say(`${project.points.filter(p=>p.auto).length} focus points from recorded clicks.`);return;}
-  // Analyses from before version 2 could miss frames in WebM recordings, so they are redone.
-  let result=project.analysis?.version===2&&!project.analysis.error&&project.analysis.points.length?project.analysis:null;
+  // Version 2 fixed missed WebM frames; version 3 adds changed-area sizes for framing. Older analyses are redone.
+  let result=project.analysis?.version===3&&!project.analysis.error&&project.analysis.points.length?project.analysis:null;
   if(!result){stopPlayback();setBusy(true);try{result=await findFocus();}catch(error){say('Analysis cancelled. Focus points are unchanged.');}finally{setBusy(false);}}
   if(!result)return;
   edit(()=>{project.points=[...project.points.filter(p=>!p.auto),...structuredClone(result.points)];project.analysis={method:'visual-change',...result};});
@@ -101,14 +101,14 @@ $('redo').onclick=()=>{if(!editing())return;stopPlayback();project=history.redo(
 $('name').onchange=()=>edit(()=>project.name=$('name').value.trim()||'Untitled demo');
 document.querySelectorAll('[data-setting]').forEach(e=>e.onchange=()=>{const value=e.type==='checkbox'?e.checked:e.tagName==='SELECT'?e.value:Number(e.value);edit(()=>project.settings[e.dataset.setting]=value);});
 document.querySelectorAll('[data-theme]').forEach(e=>e.onclick=()=>edit(()=>project.settings.theme=e.dataset.theme));
-$('preset').onchange=()=>{const preset=$('preset').value;edit(()=>Object.assign(project.settings,preset==='phone'?{ratio:'phone',theme:'black',padding:0,radius:0,zoom:1.3,hold:2.8,shadow:false,clicks:false,resolution:1206,fps:60}:preset==='tutorial'?{zoom:2,hold:2.8,ratio:'wide',theme:'mint'}:preset==='social'?{zoom:1.5,hold:1.4,ratio:'portrait',theme:'sunset'}:{zoom:1.7,hold:2,ratio:'wide',theme:'lavender'}));};
+$('preset').onchange=()=>{const preset=$('preset').value;edit(()=>Object.assign(project.settings,preset==='phone'?{ratio:'phone',theme:'black',padding:0,radius:0,zoom:1.8,hold:2.8,shadow:false,clicks:false,resolution:1206,fps:60}:preset==='tutorial'?{zoom:2,hold:2.8,ratio:'wide',theme:'mint'}:preset==='social'?{zoom:1.5,hold:1.4,ratio:'portrait',theme:'sunset'}:{zoom:1.7,hold:2,ratio:'wide',theme:'lavender'}));};
 $('original').onclick=()=>download(blob,filename()+'-original.'+(blob.type.includes('mp4')?'mp4':'webm'));
 async function importMedia(file){if(!file||busy)return;setBusy(true);let renderAfter=false;try{
   await saveLocal();if(file.name.toLowerCase().endsWith('.strela')){const saved=await readArchive(file);await openMedia(saved.blob,saved.project);}
   else{
     await openMedia(file);const result=await findFocus();
     project.points=result.points;project.analysis={method:'visual-change',...result};
-    Object.assign(project.settings,{ratio:'phone',theme:'black',padding:0,radius:0,zoom:1.3,hold:2.8,shadow:false,clicks:false,resolution:1206,fps:60});
+    Object.assign(project.settings,{ratio:'phone',theme:'black',padding:0,radius:0,zoom:1.8,hold:2.8,shadow:false,clicks:false,resolution:1206,fps:60});
     $('preset').value='phone';refresh();await saveLocal();renderAfter=true;
   }
  }catch(error){say(error.name==='AbortError'?'Analysis cancelled. Original video remains available.':error.message);}

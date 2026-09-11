@@ -13,9 +13,10 @@ self.onmessage=async({data})=>{
   let previous=null,i=0;const candidates=[];
   for await(const entry of sampleFrames(sink,times)){
     const c=entry.canvas,pixels=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
-    if(previous){const hit=attention(previous,pixels,c.width,c.height);if(hit)candidates.push({...hit,t:times[i]});}previous=pixels;
+    // The change happened between the two samples, so its time is their midpoint.
+    if(previous){const hit=attention(previous,pixels,c.width,c.height);if(hit)candidates.push({...hit,t:times[i]-step/2});}previous=pixels;
     i++;if(i%4===0)self.postMessage({type:'progress',progress:i/times.length});
   }
-  self.postMessage({type:'done',points:attentionPoints(candidates),samples:i,version:2});
+  self.postMessage({type:'done',points:attentionPoints(candidates),samples:i,version:3});
  }catch(e){self.postMessage({type:'error',error:e.message});}finally{input?.dispose();}
 };

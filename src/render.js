@@ -13,11 +13,11 @@ export function render(canvas,source,sw,sh,p,t){
   if(s.ratio==='phone'){
     const {overview,detail}=phoneLayout(W,H,sw,sh),points=p.points.filter(point=>timelineTime(p.clips,point.t)!==null);
     if(!points.length){const fit=Math.min(W*.91/sw,H*.86/sh),w=sw*fit,h=sh*fit,g={x:(W-w)/2,y:(H-h)/2,w,h,crop:{x:0,y:0,w:sw,h:sh}};if(source)ctx.drawImage(source,0,0,sw,sh,g.x,g.y,w,h);return g;}
-    detail.crop=camera(points,t,sw,sh,s,detail.w/detail.h);
+    detail.crop=camera(points,t,sw,sh,s,detail.w/detail.h,p.clips);
     for(const g of [overview,detail]){ctx.save();ctx.beginPath();ctx.roundRect(g.x,g.y,g.w,g.h,g===overview?0:Math.min(s.radius*scale,g.w/2,g.h/2));ctx.clip();if(source)ctx.drawImage(source,g.crop.x,g.crop.y,g.crop.w,g.crop.h,g.x,g.y,g.w,g.h);ctx.restore();}
     return {...detail,overview};
   }
-  const pad=s.padding*scale,fit=Math.min((W-pad*2)/sw,(H-pad*2)/sh),w=s.ratio==='portrait'?W-pad*2:sw*fit,h=s.ratio==='portrait'?H-pad*2:sh*fit,x=(W-w)/2,y=(H-h)/2,r=Math.min(s.radius*scale,w/2,h/2),crop=camera(p.points.filter(point=>timelineTime(p.clips,point.t)!==null),t,sw,sh,s,w/h);
+  const pad=s.padding*scale,fit=Math.min((W-pad*2)/sw,(H-pad*2)/sh),w=s.ratio==='portrait'?W-pad*2:sw*fit,h=s.ratio==='portrait'?H-pad*2:sh*fit,x=(W-w)/2,y=(H-h)/2,r=Math.min(s.radius*scale,w/2,h/2),crop=camera(p.points,t,sw,sh,s,w/h,p.clips);
   ctx.save();if(s.shadow){ctx.shadowColor='#10132a66';ctx.shadowBlur=48*scale;ctx.shadowOffsetY=22*scale;}ctx.fillStyle='#15161c';ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();ctx.restore();
   ctx.save();ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.clip();
   if(source)ctx.drawImage(source,crop.x,crop.y,crop.w,crop.h,x,y,w,h);

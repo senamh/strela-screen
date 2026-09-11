@@ -14,14 +14,14 @@ export function attention(previous,current,width,height){
     const queue=[i];seen.add(i);let mass=0,x=0,y=0,minX=cols,minY=rows,maxX=0,maxY=0;
     while(queue.length){const k=queue.pop(),cx=k%cols,cy=Math.floor(k/cols),w=weights[k];mass+=w;x+=(cx+.5)*w;y+=(cy+.5)*w;minX=Math.min(minX,cx);maxX=Math.max(maxX,cx);minY=Math.min(minY,cy);maxY=Math.max(maxY,cy);
       for(const n of [k-1,k+1,k-cols,k+cols])if(n>=0&&n<weights.length&&Math.abs(n%cols-cx)+Math.abs(Math.floor(n/cols)-cy)===1&&!seen.has(n)&&weights[n]>=peak*.15){seen.add(n);queue.push(n);}
-    }groups.push({x:x/mass/cols,y:y/mass/rows,mass,area:(maxX-minX+1)*(maxY-minY+1)/(cols*rows)});
+    }groups.push({x:x/mass/cols,y:y/mass/rows,w:(maxX-minX+1)/cols,h:(maxY-minY+1)/rows,mass,area:(maxX-minX+1)*(maxY-minY+1)/(cols*rows)});
   }
   groups.sort((a,b)=>b.mass-a.mass);const best=groups[0],total=weights.reduce((a,b)=>a+b,0);
-  return best&&best.mass/total>.65&&best.area<.28?{x:best.x,y:best.y,confidence:best.mass/total}:null;
+  return best&&best.mass/total>.65&&best.area<.28?{x:best.x,y:best.y,w:best.w,h:best.h,confidence:best.mass/total}:null;
 }
 export function attentionPoints(candidates){
   const points=[];
   for(const c of candidates){const last=points.at(-1);if(last&&c.t-last.t<2.5)continue;
-    points.push({id:crypto.randomUUID(),t:c.t,x:c.x,y:c.y,auto:true,origin:'visual-change'});
+    points.push({id:crypto.randomUUID(),t:c.t,x:c.x,y:c.y,...(c.w>0&&c.h>0?{w:c.w,h:c.h}:{}),auto:true,origin:'visual-change'});
   }return points;
 }

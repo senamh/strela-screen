@@ -1,5 +1,15 @@
 # QA evidence — 0.2.0
 
+## 0.4.2 camera planner
+
+The old camera averaged every focus point whose window covered the current time. With points about 3 s apart, the frame parked halfway between two actions for about a second (centre 0.50 × 0.47 between points at 0.2 × 0.25 and 0.8 × 0.7), arrived 2 s early and left 0.5 s after the action. Narrow layouts returned to a slice through the source centre between points.
+
+Now focus points become shots on the edited timeline: arrive 0.4 s before the action, hold at least `hold` seconds after it, pan directly to a shot that starts within 1.5 s instead of zooming out, and rest on the last shot in phone, portrait and square layouts. Visual changes carry their changed-area size, so the zoom ranges from 40% of the strength setting (large panels) to the full setting (small controls); the phone style now uses 1.8 as its maximum. Planned crops are chased by a critically damped spring (ω = 14) and cached at 60 Hz. A path for 80 points over 8 minutes builds in about 14 ms; each frame then costs about 0.05 ms.
+
+Checks: 25 tests pass, including new ones for arriving before and holding after actions, no parking between close actions (under 1.1 s in transit), zoom from changed-area size, and camera behaviour across timeline cuts. On the owner's 7:57 recording, frames at 22.3, 25.3, 28.3 and 31 s showed empty Blender grid in 0.4.1 and the acted-on panel or character with the new planner. The demo project exported to 1206×2622 with the new camera and no console errors.
+
+Date: 2026-09-11.
+
 ## 0.4.1 export and auto-focus fixes
 
 Found while reproducing user reports that export and Generate auto-focus did not work:

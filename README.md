@@ -4,7 +4,7 @@
 
 **Turn desktop recordings into phone-ready demos.** Import a video, let Strela find visual areas of attention, and download a styled MP4. Processing stays on your device.
 
-[Download 0.4.1 beta](https://github.com/senamh/strela-screen/releases/tag/v0.4.1) · [Русская инструкция](INSTALL_RU.md) · [Report an issue](https://github.com/senamh/strela-screen/issues)
+[Download 0.4.2 beta](https://github.com/senamh/strela-screen/releases/tag/v0.4.2) · [Русская инструкция](INSTALL_RU.md) · [Report an issue](https://github.com/senamh/strela-screen/issues)
 
 > Free public beta. Not a signed desktop app or store-listed extension. The local studio has been checked in Chrome on macOS; Windows/Edge and the installed extension still need qualification.
 
@@ -12,13 +12,14 @@
 
 - **Import → analyse → render.** Video imports automatically receive editable focus points, black phone framing and MP4 export. The finished video downloads on its own as `<project> - Strela.mp4`.
 - **Keep the context.** A full-frame overview remains above the detailed view. When analysis finds no reliable focus, the complete source is preserved without an invented crop.
+- **A camera that follows the story.** The frame arrives just before each action, stays on it afterwards, pans straight to the next nearby action instead of zooming out and back in, and zooms closer on small controls than on large panels.
 - **Make it yours.** Smooth camera motion, five backgrounds including true black, four canvas layouts, editable focus and a non-destructive timeline.
 - **Keep it local.** No Strela account or upload service. Autosave in your browser and portable .strela project backups.
 - **Record or import.** Screen/window/tab capture, pause/resume and optional audio. Export MP4, WebM or short GIFs. No added click waves or synthetic click sounds.
 
 ## Install in Chrome or Edge
 
-1. Download **strela-screen-0.4.1.zip** from the [release assets](https://github.com/senamh/strela-screen/releases/tag/v0.4.1) and extract it.
+1. Download **strela-screen-0.4.2.zip** from the [release assets](https://github.com/senamh/strela-screen/releases/tag/v0.4.2) and extract it.
 2. Open chrome://extensions or edge://extensions, enable Developer mode and choose **Load unpacked**.
 3. Select the extracted **strela-screen** folder containing manifest.json.
 4. Open the extension → **Open studio** → **Import** a video or **Try a demo**.
