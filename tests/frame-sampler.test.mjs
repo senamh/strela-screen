@@ -15,3 +15,9 @@ test('sampler closes the decoder on early cancellation and rejects empty media',
   assert(closed);
   await assert.rejects(async()=>{for await(const frame of sampleFrames({async* canvases(){}},[0]))void frame;},/no decodable/);
 });
+test('long gaps restart decoding at the next timestamp when jumping is allowed',async()=>{
+  const starts=[],sink={async* canvases(start=0){starts.push(start);for(let t=Math.floor(start);t<60;t++)yield {timestamp:t};}};
+  const seen=[];for await(const f of sampleFrames(sink,[0,1,30,31,33,50],{jump:5}))seen.push(f.timestamp);
+  assert.deepEqual(seen,[0,1,30,31,33,50]);assert.deepEqual(starts,[0,30,50]);
+  starts.length=0;for await(const f of sampleFrames(sink,[0,30]))void f;assert.deepEqual(starts,[0]);
+});

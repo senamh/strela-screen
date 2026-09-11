@@ -1,20 +1,20 @@
-# Strela Screen 0.4.3: smaller files
+# Strela Screen 0.5.0: follow, pauses, frame rate
 
 Turn desktop recordings into phone-ready demos. Free, local-first, no account required by Strela.
 
 ## What's new
 
-- **Choose the file size.** The export window has a new **File size** option:
-  - **Balanced** (default, also used by the automatic render after Import): about half the size of Best, with the same text sharpness in our checks.
-  - **Best**: the rate used up to 0.4.2.
-  - **Small**: about half of Balanced again, for messengers.
-- Measured on a busy 60-second segment of a 2560×1440 screen recording, exported for iPhone at 1206×2622 and 60 fps: **Best 170.7 MB, Balanced 79.2 MB, Small 44.1 MB**, each rendered in about 28 seconds. Crops of UI text at 1:1 showed no visible difference.
+- **Speed up pauses (optional).** Turn on **Speed up pauses** to play stretches of 3 seconds or more where nothing on screen changes up to 16× faster. Cursor movement and typing do not count as pauses. Your clips are not changed, and the sped-up parts are silent. Off by default. On an 8-minute Blender recording it found 19 pauses (83 seconds), mostly render waits.
+- **Frame rate that matches the source.** Recordings near 25 or 50 fps now render at 50 fps instead of 60, which repeated every fifth frame; the export window marks the matching option.
+- **Continuous follow.** While the frame holds an action, work that drifts towards the edge moves it part of the way, smoothly. A change far from the current action is followed only when a second change confirms it, so one-off redraws elsewhere on screen do not pull the frame away.
+- **Faster exports of trimmed MP4s.** Skipped parts are no longer decoded: a 50-second clip starting at 4:10 exported in 25 s instead of about 45 s.
+- **Icons** for the toolbar and extensions page, and a [privacy policy](https://github.com/senamh/strela-screen/blob/main/PRIVACY.md).
 
-Everything from 0.4.2 is included: the new shot-by-shot camera that arrives before each action, stays after it and pans directly between close actions.
+Projects from earlier versions can use pauses after **Generate auto-focus** re-runs the analysis.
 
 ## Download and install
 
-Download **strela-screen-0.4.3.zip** from the Assets section below, not the automatically generated source-code ZIP.
+Download **strela-screen-0.5.0.zip** from the Assets section below, not the automatically generated source-code ZIP.
 
 1. Extract the archive.
 2. Open `chrome://extensions` (or `edge://extensions`).
@@ -30,8 +30,8 @@ The archive includes Russian installation instructions, third-party notices and 
 
 This is an **experimental browser beta**, not a signed desktop installer or a Chrome Web Store release. Intended for current Chrome/Edge. macOS Chrome studio checks have passed; Windows/Edge and the sideloaded extension permission paths still need qualification. Safari/Firefox are unsupported.
 
-Analysis detects visual changes. It is not OCR, semantic understanding or guaranteed cursor tracking, so review generated focus. Small text needs a sharp source; increasing output resolution cannot restore missing detail. File sizes depend on how much the screen changes; fast motion such as 3D viewports needs more data.
+Analysis detects visual changes. It is not OCR, semantic understanding or guaranteed cursor tracking, so review generated focus. Small text needs a sharp source; increasing output resolution cannot restore missing detail. File sizes depend on how much the screen changes.
 
-**Verification:** 26 automated tests pass, including validation of the size presets. Physical iPhone testing is not claimed.
+**Verification:** 32 automated tests pass, including pause detection and speed-up timing, follow behaviour and frame-rate choice. Exports with sped-up pauses were checked for duration and for silence in the sped-up parts. Physical iPhone testing is not claimed.
 
 Report a reproducible problem through GitHub Issues. Include browser/OS, error message and a non-sensitive sample when possible. Do not attach private screen recordings publicly.

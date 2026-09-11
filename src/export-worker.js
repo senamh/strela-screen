@@ -1,21 +1,23 @@
 import {Input,BlobSource,ALL_FORMATS,CanvasSink,AudioSampleSink,AudioSample,Output,BufferTarget,CanvasSource,AudioSampleSource,Mp4OutputFormat,WebMOutputFormat,Quality,canEncodeVideo,canEncodeAudio} from 'mediabunny';
-import {duration,sourceTime,validateProject,SIZES} from './model.js';
+import {duration,sourceTime,validateProject,SIZES,timeline} from './model.js';
 import {render,size} from './render.js';
 import {GIFEncoder,quantize,applyPalette} from 'gifenc';
 import {sampleFrames} from './frame-sampler.js';
 self.onmessage=async({data})=>{
   let input,output;
   try{
-    const p=validateProject(data.project),mp4=data.format==='mp4',fps=p.settings.fps;
+    const p=validateProject(data.project),mp4=data.format==='mp4',fps=p.settings.fps,clips=timeline(p);
     input=new Input({source:new BlobSource(data.blob),formats:ALL_FORMATS});
     const vt=await input.getPrimaryVideoTrack(),at=await input.getPrimaryAudioTrack();
+    // MP4/MOV seek reliably, so trimmed starts and removed clips are skipped rather than decoded; cue-less WebM is read in order.
+    const jump=/webm|matroska/i.test((await input.getFormat()).name)?0:5;
     if(!vt||!await vt.canDecode())throw new Error('This video cannot be decoded. Try importing an MP4 or WebM recorded in Chrome.');
     if(data.format==='gif'){
-      const total=duration(p.clips);if(total>60)throw new Error('GIF exports are limited to 60 seconds. Trim the video or export MP4.');
+      const total=duration(clips);if(total>60)throw new Error('GIF exports are limited to 60 seconds. Trim the video or export MP4.');
       const [w,h]=size(p.settings.ratio,360),canvas=new OffscreenCanvas(w,h),ctx=canvas.getContext('2d'),sink=new CanvasSink(vt,{poolSize:2}),gif=GIFEncoder(),count=Math.ceil(total*15);
-      const times=function*(){for(let i=0;i<count;i++)yield Math.max(p.mediaStart||0,sourceTime(p.clips,i/15));};let i=0;
-      for await(const entry of sampleFrames(sink,times())){
-        if(!entry)throw new Error('Missing GIF source frame.');render(canvas,entry.canvas,p.width,p.height,p,sourceTime(p.clips,i/15));
+      const times=function*(){for(let i=0;i<count;i++)yield Math.max(p.mediaStart||0,sourceTime(clips,i/15));};let i=0;
+      for await(const entry of sampleFrames(sink,times(),{jump})){
+        if(!entry)throw new Error('Missing GIF source frame.');render(canvas,entry.canvas,p.width,p.height,p,sourceTime(clips,i/15));
         const rgba=ctx.getImageData(0,0,w,h).data,palette=quantize(rgba,256),delay=(Math.round(Math.min(total,(i+1)/15)*100)-Math.round(i/15*100))*10;gif.writeFrame(applyPalette(rgba,palette),w,h,{palette,delay,repeat:0});i++;if(i%3===0)self.postMessage({type:'progress',progress:i/count});
       }
       gif.finish();const buffer=gif.bytes().buffer;self.postMessage({type:'done',buffer,mime:'image/gif',summary:{width:w,height:h,duration:total,audio:false}},[buffer]);return;
@@ -37,13 +39,13 @@ self.onmessage=async({data})=>{
       audioSource=new AudioSampleSource({codec:mp4?'aac':'opus',quality:new Quality('high')});output.addAudioTrack(audioSource);
     }
     await output.start();
-    const total=duration(p.clips),frameCount=Math.ceil(total*fps),sink=new CanvasSink(vt,{poolSize:2});
-    const times=function*(){for(let i=0;i<frameCount;i++)yield Math.max(p.mediaStart||0,sourceTime(p.clips,i/fps));};
+    const total=duration(clips),frameCount=Math.ceil(total*fps),sink=new CanvasSink(vt,{poolSize:2});
+    const times=function*(){for(let i=0;i<frameCount;i++)yield Math.max(p.mediaStart||0,sourceTime(clips,i/fps));};
     const encodeVideo=async()=>{
       let i=0;
-      for await(const entry of sampleFrames(sink,times())){
+      for await(const entry of sampleFrames(sink,times(),{jump})){
         if(!entry)throw new Error('A video frame is missing at '+(i/fps).toFixed(2)+'s.');
-        render(canvas,entry.canvas,p.width,p.height,p,sourceTime(p.clips,i/fps));
+        render(canvas,entry.canvas,p.width,p.height,p,sourceTime(clips,i/fps));
         await source.add(i/fps,Math.min(1/fps,total-i/fps));i++;
         if(i%5===0)self.postMessage({type:'progress',progress:i/frameCount*.9});
       }
@@ -54,7 +56,9 @@ self.onmessage=async({data})=>{
       const sink=new AudioSampleSink(at);let outputFrames=0;
       const add=async(data,n)=>{const sample=new AudioSample({data,format:'f32-planar',sampleRate:rate,numberOfChannels:channels,timestamp:outputFrames/rate});try{await audioSource.add(sample);outputFrames+=n;}finally{sample.close();}};
       const silent=async count=>{while(count>0){const n=Math.min(count,rate);await add(new Float32Array(n*channels),n);count-=n;}};
-      for(const clip of p.clips){
+      for(const clip of clips){
+        // Sped-up pauses stay silent rather than playing chipmunked audio.
+        if(clip.speed>1){await silent(Math.round((clip.end-clip.start)/clip.speed*rate));continue;}
         let cursor=0;const length=Math.round((clip.end-clip.start)*rate);
         for await(const b of sink.samples(clip.start,clip.end)){
           try{

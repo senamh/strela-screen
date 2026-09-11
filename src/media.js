@@ -1,9 +1,16 @@
-import {Input,BlobSource,ALL_FORMATS,CanvasSink,Output,BufferTarget,CanvasSource,AudioBufferSource,WebMOutputFormat,Quality} from 'mediabunny';
+import {Input,BlobSource,ALL_FORMATS,CanvasSink,EncodedPacketSink,Output,BufferTarget,CanvasSource,AudioBufferSource,WebMOutputFormat,Quality} from 'mediabunny';
 import {sampleFrames} from './frame-sampler.js';
+// Median spacing of the first packets, read from the container without decoding. The median ignores
+// the long gaps that variable-rate screen capture leaves on static screens.
+async function frameRate(track){
+  const times=[];for await(const p of new EncodedPacketSink(track).packets(undefined,undefined,{metadataOnly:true})){times.push(p.timestamp);if(times.length>=240)break;}
+  times.sort((a,b)=>a-b);const gaps=times.slice(1).map((t,i)=>t-times[i]).filter(d=>d>1e-4).sort((a,b)=>a-b);
+  return gaps.length?1/gaps[Math.floor(gaps.length/2)]:0;
+}
 // Export validation reads container metadata only, so an HEVC file this browser cannot decode still passes.
 export async function inspect(blob,{decode=true}={}){
   const input=new Input({source:new BlobSource(blob),formats:ALL_FORMATS});
-  try{const track=await input.getPrimaryVideoTrack();if(!track||decode&&!await track.canDecode())throw new Error('Unsupported video. Use MP4 or WebM.');return {duration:await track.computeDuration(),width:await track.getDisplayWidth(),height:await track.getDisplayHeight(),mediaStart:await track.getFirstTimestamp(),audio:!!await input.getPrimaryAudioTrack()};}finally{input.dispose();}
+  try{const track=await input.getPrimaryVideoTrack();if(!track||decode&&!await track.canDecode())throw new Error('Unsupported video. Use MP4 or WebM.');return {duration:await track.computeDuration(),width:await track.getDisplayWidth(),height:await track.getDisplayHeight(),mediaStart:await track.getFirstTimestamp(),audio:!!await input.getPrimaryAudioTrack(),sourceFps:decode?await frameRate(track):0};}finally{input.dispose();}
 }
 export async function thumbnails(blob,count=10){const input=new Input({source:new BlobSource(blob),formats:ALL_FORMATS});try{const track=await input.getPrimaryVideoTrack(),length=await track.computeDuration(),start=await track.getFirstTimestamp(),times=Array.from({length:count},(_,i)=>Math.max(start,length*i/count));let result=[];for await(const entry of new CanvasSink(track,{width:160}).canvasesAtTimestamps(times)){if(entry)result.push(entry.canvas.toDataURL());}
   // Cue-less WebM (MediaRecorder) misses timestamp lookups; decode it in order instead.

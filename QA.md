@@ -1,5 +1,15 @@
 # QA evidence — 0.2.0
 
+## 0.5.0 frame rate, pauses, follow, store package
+
+- **Frame rate.** The source rate is the median packet spacing of the first 240 packets, read without decoding. Sources near 25 or 50 fps render at 50 fps, everything else at 60; the export window marks the matching option. The owner's recording measured 50.22 fps and defaulted to 50.
+- **Speed up pauses (off by default).** Analysis v4 stores stretches where under 0.012% of the 320 px frame changes. With the setting on, the effective timeline plays pauses of 3 s or more faster (half a second at normal speed at each edge, up to 16×) without changing the user's clips; sped-up audio is silent in preview and export. At a 0.06% threshold, typing and cursor movement were counted as pauses on a synthetic recording; at 0.012% only the static stretch (15–25.5 s) and a 1 s cursor rest remained. On the owner's recording: 19 pauses, 83 s; the longest were render waits in Blender. A 250–300 s trim with three sped-up pauses exported to 25.76 s and passed validation; a synthetic recording with audio exported to 17.43 s with silence only in the sped-up second.
+- **Follow.** Analysis v4 also stores every visual-change hit. While the frame holds a shot or rests, a hit outside the central 75% shifts it part of the way, eased over 0.6–1.2 s depending on distance. Hits more than 25% of the frame from a zoomed shot are followed only if another hit landed near them within 1.5 s. Across the owner's recording, the share of hits inside the phone detail view 0.3 s later was 90.1% with shots only, 91.2% with this follow and 92.3% with unrestricted follow; the unrestricted variant pulled the frame from the acted-on panel to a viewport redraw at 31 s, so the confirmation rule was kept.
+- **Faster trimmed exports.** For MP4/MOV, gaps over 5 s (a trimmed start, removed clips) restart decoding at the next frame instead of decoding through them: a 250–300 s trim exported in 24.8 s instead of about 45 s, with a byte-identical size. Cue-less WebM is still read in order.
+- **Chrome Web Store.** Icons (16–128 px) and a 126-character description were added to the manifest; `npm run package` writes a release ZIP and a store ZIP with the manifest at the root. Listing text, permission justifications, privacy policy, promo tile, marquee and two 1280×800 screenshots from the demo project are in `store/` and `PRIVACY.md`.
+
+`npm test`: 32 passing. Date: 2026-09-11.
+
 ## 0.4.3 export file size
 
 Exports targeted 0.18 bits per pixel per frame (about 34 Mbit/s for 1206×2622 at 60 fps). A File size choice now sets the target: Best keeps that rate, Balanced (default) uses 0.07 and Small 0.035, with floors of 12, 6 and 3 Mbit/s. Encoding stays variable-bitrate H.264.
