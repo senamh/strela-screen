@@ -20,8 +20,12 @@ self.onmessage=async({data})=>{
       }
       gif.finish();const buffer=gif.bytes().buffer;self.postMessage({type:'done',buffer,mime:'image/gif',summary:{width:w,height:h,duration:total,audio:false}},[buffer]);return;
     }
-    const [w,h]=size(p.settings.ratio,p.settings.resolution),codec=mp4?'avc':'vp9';
-    if(!await canEncodeVideo(codec,{width:w,height:h}))throw new Error((mp4?'H.264':'VP9')+' encoding is unavailable at this resolution. Try 720p or the other format.');
+    const [w,h]=size(p.settings.ratio,p.settings.resolution);let codec=mp4?'avc':'vp9';
+    // H.264 stops at about 4096 px per side, so a 2160 px phone frame (2160×4696) falls back to HEVC in MP4.
+    if(!await canEncodeVideo(codec,{width:w,height:h})){
+      if(mp4&&await canEncodeVideo('hevc',{width:w,height:h}))codec='hevc';
+      else throw new Error(`${mp4?'H.264':'VP9'} encoding is unavailable at ${w}×${h}. Choose a lower resolution${mp4?' or WebM':''}.`);
+    }
     const canvas=new OffscreenCanvas(w,h),source=new CanvasSource(canvas,{codec,bitrate:Math.max(12000000,Math.min(100000000,Math.round(w*h*fps*.18)))});
     const target=new BufferTarget();output=new Output({format:mp4?new Mp4OutputFormat({fastStart:'in-memory'}):new WebMOutputFormat(),target});
     output.addVideoTrack(source,{frameRate:fps});
@@ -70,6 +74,6 @@ self.onmessage=async({data})=>{
       audioSource.close();
     };
     await Promise.all([encodeVideo(),encodeAudio()]);self.postMessage({type:'progress',progress:.96});await output.finalize();
-    self.postMessage({type:'done',buffer:target.buffer,mime:mp4?'video/mp4':'video/webm'},[target.buffer]);
+    self.postMessage({type:'done',buffer:target.buffer,mime:mp4?'video/mp4':'video/webm',codec},[target.buffer]);
   }catch(e){await output?.cancel().catch(()=>{});self.postMessage({type:'error',error:e.message});}finally{input?.dispose();}
 };

@@ -1,9 +1,14 @@
 import {Input,BlobSource,ALL_FORMATS,CanvasSink,Output,BufferTarget,CanvasSource,AudioBufferSource,WebMOutputFormat,Quality} from 'mediabunny';
-export async function inspect(blob){
+import {sampleFrames} from './frame-sampler.js';
+// Export validation reads container metadata only, so an HEVC file this browser cannot decode still passes.
+export async function inspect(blob,{decode=true}={}){
   const input=new Input({source:new BlobSource(blob),formats:ALL_FORMATS});
-  try{const track=await input.getPrimaryVideoTrack();if(!track||!await track.canDecode())throw new Error('Unsupported video. Use MP4 or WebM.');return {duration:await track.computeDuration(),width:await track.getDisplayWidth(),height:await track.getDisplayHeight(),mediaStart:await track.getFirstTimestamp(),audio:!!await input.getPrimaryAudioTrack()};}finally{input.dispose();}
+  try{const track=await input.getPrimaryVideoTrack();if(!track||decode&&!await track.canDecode())throw new Error('Unsupported video. Use MP4 or WebM.');return {duration:await track.computeDuration(),width:await track.getDisplayWidth(),height:await track.getDisplayHeight(),mediaStart:await track.getFirstTimestamp(),audio:!!await input.getPrimaryAudioTrack()};}finally{input.dispose();}
 }
-export async function thumbnails(blob,count=10){const input=new Input({source:new BlobSource(blob),formats:ALL_FORMATS});try{const track=await input.getPrimaryVideoTrack(),length=await track.computeDuration(),start=await track.getFirstTimestamp(),sink=new CanvasSink(track,{width:160});const result=[];for await(const entry of sink.canvasesAtTimestamps(Array.from({length:count},(_,i)=>Math.max(start,length*i/count)))){if(entry)result.push(entry.canvas.toDataURL());}return result;}finally{input.dispose();}}
+export async function thumbnails(blob,count=10){const input=new Input({source:new BlobSource(blob),formats:ALL_FORMATS});try{const track=await input.getPrimaryVideoTrack(),length=await track.computeDuration(),start=await track.getFirstTimestamp(),times=Array.from({length:count},(_,i)=>Math.max(start,length*i/count));let result=[];for await(const entry of new CanvasSink(track,{width:160}).canvasesAtTimestamps(times)){if(entry)result.push(entry.canvas.toDataURL());}
+  // Cue-less WebM (MediaRecorder) misses timestamp lookups; decode it in order instead.
+  if(result.length<count){result=[];for await(const entry of sampleFrames(new CanvasSink(track,{width:160,poolSize:2}),times))result.push(entry.canvas.toDataURL());}
+  return result;}finally{input.dispose();}}
 // A deterministic, original fixture exercises the real decoder, audio and exporter.
 export async function demo(onProgress){
   const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=720;const ctx=canvas.getContext('2d');

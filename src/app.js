@@ -4,7 +4,7 @@ import {inspect,thumbnails,demo} from './media.js';
 import {Capture,clearChunks} from './capture.js';
 import {saveProject,allProjects,allChunks,projectArchive,readArchive} from './storage.js';
 import {analyzeVideo} from './analyze.js';
-let analysisController=null;
+let analysisController=null,autoDownload=false;
 const $=id=>document.getElementById(id),video=$('video'),canvas=$('preview');
 let project=null,blob=null,url=null,time=0,selected=0,geometry=null,busy=false,history=new History(),thumbs=[],worker=null,exportBlob=null,exportURL=null,saveQueue=Promise.resolve(),saveTimer=null,saveError=false;
 let target=new URLSearchParams(location.search).get('target');
@@ -20,7 +20,7 @@ function editing(){return !!project&&!busy;}
 function download(data,name){const u=URL.createObjectURL(data),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),60000);}
 function filename(){return (project?.name||'strela').replace(/[^\p{L}\p{N}_ -]/gu,'').trim().slice(0,70)||'strela';}
 function setBusy(value){busy=value;document.querySelectorAll('main button,main input,main select,.topbar button,.topbar input').forEach(e=>e.disabled=value);refreshButtons();}
-function refreshButtons(){for(const id of ['play','back','seek','save','export','original','split','trim','trim-start','trim-end'])$(id).disabled=!project||busy;$('delete-clip').disabled=!project||busy||project.clips.length<2;$('auto').disabled=!project||busy||(!project.events.length&&!project.analysis?.points?.length);$('undo').disabled=busy||!history.past.length;$('redo').disabled=busy||!history.future.length;for(const key of ['padding','shadow'])document.querySelector('[data-setting='+key+']').disabled=busy||project?.settings.ratio==='phone';}
+function refreshButtons(){for(const id of ['play','back','seek','save','export','original','split','trim','trim-start','trim-end'])$(id).disabled=!project||busy;$('delete-clip').disabled=!project||busy||project.clips.length<2;$('auto').disabled=!project||busy;$('undo').disabled=busy||!history.past.length;$('redo').disabled=busy||!history.future.length;for(const key of ['padding','shadow'])document.querySelector('[data-setting='+key+']').disabled=busy||project?.settings.ratio==='phone';}
 function stopPlayback(){video.pause();$('play').textContent='▶';}
 function currentSnapshot(){return structuredClone(project);}
 function saveLocal(){
@@ -39,7 +39,8 @@ function refresh(){
   const clips=$('clips');clips.replaceChildren();project.clips.forEach((c,i)=>{const b=document.createElement('button');b.className='clip'+(i===selected?' selected':'');b.style.flex=String(c.end-c.start);b.disabled=busy;b.setAttribute('aria-label',`Select clip ${i+1}`);if(thumbs.length)b.style.backgroundImage=`url("${thumbs[Math.min(thumbs.length-1,Math.floor(c.start/project.duration*thumbs.length))]}")`;const span=document.createElement('span');span.textContent=`${i+1} · ${(c.end-c.start).toFixed(1)}s`;b.append(span);b.onclick=()=>{selected=i;stopPlayback();seekTo(project.clips.slice(0,i).reduce((n,c)=>n+c.end-c.start,0));refresh();};clips.append(b);});
   $('trim-start').value=project.clips[selected].start.toFixed(2);$('trim-end').value=project.clips[selected].end.toFixed(2);
   const points=$('points');points.replaceChildren();project.points.forEach((p,i)=>{if(timelineTime(project.clips,p.t)===null)return;const b=document.createElement('button');b.disabled=busy;b.textContent=(p.auto?'✦ ':'')+p.t.toFixed(1)+'s ×';b.setAttribute('aria-label','Remove focus at '+p.t.toFixed(1)+' seconds');b.onclick=()=>edit(()=>project.points.splice(i,1));points.append(b);});
-  $('auto-note').textContent=project.analysis?`${project.analysis.points.length} visual focus points. ${project.analysis.error?'Analysis unavailable; full frame preserved.':project.analysis.points.length?'Review focus before sharing.':'No reliable local changes: full frame preserved.'}`:project.events.length?`${project.events.length} click cues available. Auto-focus stays editable.`:'No click cues in this recording. Pause and click to set focus; desktop apps do not expose global clicks to an extension.';
+  const found=project.analysis?.points.length??0;
+  $('auto-note').textContent=project.events.length?`${project.events.length} click cues available. Auto-focus stays editable.`:project.analysis?project.analysis.error?'Analysis unavailable; full frame preserved. Pause and click to add focus.':found?`${found} visual focus point${found===1?'':'s'}. Review focus before sharing.`:'No reliable local changes: full frame preserved. Pause and click to add focus.':'Generate auto-focus analyses the video on this device. You can also pause and click to add focus.';
   $('source-info').textContent=`${project.width} × ${project.height} · ${project.audio?'With audio':'No audio'} · ${(blob.size/1024/1024).toFixed(1)} MB`;
   const [w,h]=size(project.settings.ratio,720);if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
   video.volume=clamp(project.settings.volume,0,1);
@@ -76,7 +77,25 @@ canvas.onclick=e=>{
 $('split').onclick=()=>edit(()=>project.clips=split(project.clips,time));
 $('delete-clip').onclick=()=>{if(project?.clips.length>1)edit(()=>project.clips.splice(selected,1));};
 $('trim').onclick=()=>{const start=Number($('trim-start').value),end=Number($('trim-end').value);if(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end>project.duration||end-start<.1){say('Choose a valid clip range of at least 0.1 seconds.');return;}const prev=project.clips[selected-1],next=project.clips[selected+1];if(prev&&start<prev.end||next&&end>next.start){say('Clip ranges cannot overlap.');return;}edit(()=>project.clips[selected]={start,end});};
-$('auto').onclick=()=>edit(()=>{project.points=[...project.points.filter(p=>!p.auto),...(project.events.length?autoFocus(project.events):structuredClone(project.analysis?.points||[]))];});
+// Visual analysis in a worker. The caller owns busy state; an AbortError means the user cancelled.
+async function findFocus(){
+  analysisController=new AbortController();
+  $('progress-title').textContent='Finding areas of attention…';$('progress-label').textContent='Analysing your video locally';$('progress').value=0;$('cancel').hidden=false;$('cancel').textContent='Cancel analysis';$('progress-dialog').showModal();
+  try{return await analyzeVideo(blob,p=>{$('progress').value=p;$('progress-label').textContent=Math.round(p*100)+'% · visual analysis';},analysisController.signal);}
+  catch(error){if(error.name==='AbortError')throw error;return {points:[],samples:0,error:error.message};}
+  finally{analysisController=null;$('progress-dialog').close();}
+}
+function focusReport(result){return result.error?'Analysis failed: '+result.error+' Pause and click the video to add focus.':result.points.length?`${result.points.length} focus point${result.points.length===1?'':'s'} found. Play to preview, then export.`:'No clear areas of change found, so the full frame stays. Pause and click the video to add focus.';}
+$('auto').onclick=async()=>{
+  if(!editing())return;
+  if(project.events.length){edit(()=>project.points=[...project.points.filter(p=>!p.auto),...autoFocus(project.events)]);say(`${project.points.filter(p=>p.auto).length} focus points from recorded clicks.`);return;}
+  // Analyses from before version 2 could miss frames in WebM recordings, so they are redone.
+  let result=project.analysis?.version===2&&!project.analysis.error&&project.analysis.points.length?project.analysis:null;
+  if(!result){stopPlayback();setBusy(true);try{result=await findFocus();}catch(error){say('Analysis cancelled. Focus points are unchanged.');}finally{setBusy(false);}}
+  if(!result)return;
+  edit(()=>{project.points=[...project.points.filter(p=>!p.auto),...structuredClone(result.points)];project.analysis={method:'visual-change',...result};});
+  say(focusReport(result));
+};
 $('undo').onclick=()=>{if(!editing())return;stopPlayback();project=history.undo(project);selected=clamp(selected,0,project.clips.length-1);seekTo(Math.min(time,duration(project.clips)));changed();};
 $('redo').onclick=()=>{if(!editing())return;stopPlayback();project=history.redo(project);selected=clamp(selected,0,project.clips.length-1);seekTo(Math.min(time,duration(project.clips)));changed();};
 $('name').onchange=()=>edit(()=>project.name=$('name').value.trim()||'Untitled demo');
@@ -87,17 +106,14 @@ $('original').onclick=()=>download(blob,filename()+'-original.'+(blob.type.inclu
 async function importMedia(file){if(!file||busy)return;setBusy(true);let renderAfter=false;try{
   await saveLocal();if(file.name.toLowerCase().endsWith('.strela')){const saved=await readArchive(file);await openMedia(saved.blob,saved.project);}
   else{
-    await openMedia(file);analysisController=new AbortController();
-    $('progress-title').textContent='Finding areas of attention…';$('progress-label').textContent='Analysing your video locally';$('progress').value=0;$('cancel').hidden=false;$('progress-dialog').showModal();
-    let result;try{result=await analyzeVideo(blob,p=>{$('progress').value=p;$('progress-label').textContent=Math.round(p*100)+'% · visual analysis';},analysisController.signal);}
-    catch(error){if(error.name==='AbortError')throw error;result={points:[],samples:0,error:error.message};}
+    await openMedia(file);const result=await findFocus();
     project.points=result.points;project.analysis={method:'visual-change',...result};
     Object.assign(project.settings,{ratio:'phone',theme:'black',padding:0,radius:0,zoom:1.3,hold:2.8,shadow:false,clicks:false,resolution:1206,fps:60});
-    $('preset').value='phone';refresh();await saveLocal();if(analysisController.signal.aborted)throw new DOMException('Analysis cancelled','AbortError');renderAfter=true;
+    $('preset').value='phone';refresh();await saveLocal();renderAfter=true;
   }
  }catch(error){say(error.name==='AbortError'?'Analysis cancelled. Original video remains available.':error.message);}
- finally{analysisController=null;$('progress-dialog').close();setBusy(false);}
- if(renderAfter){$('format').value='mp4';$('resolution').value='1206';$('fps').value='60';$('start-export').click();}
+ finally{setBusy(false);}
+ if(renderAfter){$('format').value='mp4';$('resolution').value='1206';$('fps').value='60';autoDownload=true;$('start-export').click();}
 }
 $('file').onchange=async e=>{try{await importMedia(e.target.files[0]);}finally{e.target.value='';}};
 $('save').onclick=async()=>{if(!editing())return;setBusy(true);try{say('Packing project and original video…');download(await projectArchive(project,blob),filename()+'.strela');say('Project backup ready. It includes the original video.');}catch(e){say(e.message);}finally{setBusy(false);}};
@@ -110,8 +126,10 @@ function recordDialog(){if(busy)return;stopPlayback();$('tab-note').textContent=
 $('new-record').onclick=$('empty-record').onclick=recordDialog;
 $('start-record').onclick=async()=>{
   if(busy)return;const options={mode:$('mode').value,target,mic:$('mic').checked,system:$('system').checked};$('capture-dialog').close();setBusy(true);stopPlayback();
-  try{saveLocal();const info=await capture.start(options);$('recording').hidden=false;$('stop-record').disabled=$('pause-record').disabled=false;say(info.tracking?'Recording with click cues. Return here to stop.':'Recording. Auto-focus unavailable for this source; add manual focus after recording.');
+  try{saveLocal();const info=await capture.start(options);$('recording').hidden=false;$('stop-record').disabled=$('pause-record').disabled=false;say(info.tracking?'Recording with click cues. Return here to stop.':'Recording. After you stop, Strela finds focus from visual changes in the video.');
     const result=await capture.done;await openMedia(result.blob,null,result.events);if(!saveError)await clearChunks(result.id);
+    // Screens and windows expose no clicks, so find focus visually as an import does.
+    if(!project.events.length){try{const found=await findFocus();project.points=found.points;project.analysis={method:'visual-change',...found};refresh();await saveLocal();say(focusReport(found));}catch(e){if(e.name!=='AbortError')throw e;say('Analysis cancelled. Use Generate auto-focus later, or pause and click to add focus.');}}
   }catch(e){say('Recording: '+e.message);}finally{setBusy(false);$('recording').hidden=true;}
 };
 $('pause-record').onclick=()=>capture.pause();$('stop-record').onclick=()=>capture.stop();
@@ -122,8 +140,10 @@ function finishExport(){worker?.terminate();worker=null;$('progress-dialog').clo
 $('cancel').onclick=()=>{if(analysisController){analysisController.abort();return;}finishExport();say('Export cancelled. Your project is unchanged.');};
 $('progress-dialog').addEventListener('cancel',e=>e.preventDefault());
 $('start-export').onclick=()=>{
-  if(!editing())return;stopPlayback();const format=$('format').value;project.settings.resolution=Number($('resolution').value);project.settings.fps=Number($('fps').value);saveLocal();$('export-dialog').close();setBusy(true);$('progress-title').textContent='Rendering your video…';$('progress-label').textContent='Preparing codecs';$('progress').value=0;$('cancel').hidden=false;$('progress-dialog').showModal();
+  if(!editing())return;stopPlayback();const format=$('format').value;project.settings.resolution=Number($('resolution').value);project.settings.fps=Number($('fps').value);saveLocal();$('export-dialog').close();setBusy(true);$('progress-title').textContent='Rendering your video…';$('progress-label').textContent='Preparing codecs';$('progress').value=0;$('cancel').hidden=false;$('cancel').textContent='Cancel export';$('progress-dialog').showModal();
   $('export-result').hidden=true;
+  // Only the automatic import render saves on its own; manual exports wait for Download.
+  const saveAfter=autoDownload;autoDownload=false;
   const exportProject=currentSnapshot();
   worker=new Worker('export-worker.js',{type:'module'});const activeWorker=worker;
   worker.onerror=e=>{if(worker!==activeWorker)return;finishExport();say('Export failed: '+e.message);};
@@ -134,7 +154,7 @@ $('start-export').onclick=()=>{
     if(data.type==='done'){
       try{
         const candidate=new Blob([data.buffer],{type:data.mime});
-        const meta=data.mime==='image/gif'?data.summary:await inspect(candidate);
+        const meta=data.mime==='image/gif'?data.summary:await inspect(candidate,{decode:false});
         if(worker!==activeWorker)return;
         if(Math.abs(meta.duration-duration(exportProject.clips))>.15)throw new Error('Output duration differs from the timeline.');
         if(data.mime!=='image/gif'&&exportProject.audio&&exportProject.settings.volume>0&&!meta.audio)throw new Error('Output audio is missing.');
@@ -144,8 +164,9 @@ $('start-export').onclick=()=>{
         $('export-video').src=data.mime==='image/gif'?'':exportURL;$('export-video').hidden=data.mime==='image/gif';$('export-image').hidden=data.mime!=='image/gif';
         if(data.mime==='image/gif')$('export-image').src=exportURL;
         $('export-result').hidden=false;$('export-details').textContent=`${meta.width} × ${meta.height} · ${meta.duration.toFixed(2)}s · ${meta.audio?'audio included':'no audio'} · ${(exportBlob.size/1024/1024).toFixed(1)} MB`;
-        $('download-export').onclick=()=>download(exportBlob,filename()+'.'+format);
-        say(data.mime==='image/gif'?'GIF rendered. Watch or download it below.':'Export passed duration, dimensions and audio-track checks. Watch or download it below.');
+        // A distinct name keeps the render apart from a source file with the same project name.
+        $('download-export').onclick=()=>download(exportBlob,filename()+' - Strela.'+format);if(saveAfter)$('download-export').click();
+        say((data.mime==='image/gif'?'GIF rendered. Watch or download it below.':'Export passed duration, dimensions and audio-track checks. Watch or download it below.')+(data.codec==='hevc'?' Encoded as HEVC (H.265): H.264 does not support this frame size.':'')+(exportProject.points.length?'':' No focus points, so the video keeps the full frame.')+(saveAfter?` Download started: ${filename()} - Strela.${format}`:''));
       }catch(e){if(worker===activeWorker)say('Output validation failed: '+e.message);}
       finally{if(worker===activeWorker)finishExport();}
     }

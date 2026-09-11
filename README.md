@@ -4,13 +4,13 @@
 
 **Turn desktop recordings into phone-ready demos.** Import a video, let Strela find visual areas of attention, and download a styled MP4. Processing stays on your device.
 
-[Download 0.4 beta](https://github.com/senamh/strela-screen/releases/tag/v0.4.0) · [Русская инструкция](INSTALL_RU.md) · [Report an issue](https://github.com/senamh/strela-screen/issues)
+[Download 0.4.1 beta](https://github.com/senamh/strela-screen/releases/tag/v0.4.1) · [Русская инструкция](INSTALL_RU.md) · [Report an issue](https://github.com/senamh/strela-screen/issues)
 
 > Free public beta. Not a signed desktop app or store-listed extension. The local studio has been checked in Chrome on macOS; Windows/Edge and the installed extension still need qualification.
 
 ## From desktop to phone
 
-- **Import → analyse → render.** Video imports automatically receive editable focus points, black phone framing and MP4 export. Downloading remains your choice.
+- **Import → analyse → render.** Video imports automatically receive editable focus points, black phone framing and MP4 export. The finished video downloads on its own as `<project> - Strela.mp4`.
 - **Keep the context.** A full-frame overview remains above the detailed view. When analysis finds no reliable focus, the complete source is preserved without an invented crop.
 - **Make it yours.** Smooth camera motion, five backgrounds including true black, four canvas layouts, editable focus and a non-destructive timeline.
 - **Keep it local.** No Strela account or upload service. Autosave in your browser and portable .strela project backups.
@@ -18,11 +18,11 @@
 
 ## Install in Chrome or Edge
 
-1. Download **strela-screen-0.4.0.zip** from the [release assets](https://github.com/senamh/strela-screen/releases/tag/v0.4.0) and extract it.
+1. Download **strela-screen-0.4.1.zip** from the [release assets](https://github.com/senamh/strela-screen/releases/tag/v0.4.1) and extract it.
 2. Open chrome://extensions or edge://extensions, enable Developer mode and choose **Load unpacked**.
 3. Select the extracted **strela-screen** folder containing manifest.json.
 4. Open the extension → **Open studio** → **Import** a video or **Try a demo**.
-5. Wait for analysis/rendering → **Download video**.
+5. Wait for analysis and rendering; the MP4 downloads when it is ready. **Save project** creates a `.strela` backup, not a video.
 
 For recording, use **Record**. Existing .strela files restore your saved edits rather than reprocessing them. Before updating, save project backups and reload the extension from its existing folder; uninstalling can erase its library.
 
