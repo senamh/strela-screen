@@ -1,6 +1,6 @@
 # Production release gates
 
-Status: 0.6.0 experimental browser beta. Local release checks passed on 17 September 2026, including a full real-recording import/export; publication and asset verification are tracked separately. Do not market it as fully tested on both operating systems. Current and historical test evidence is separated in QA.md.
+Status: 0.6.1 experimental browser beta. Current design/release checks are recorded in QA.md; the full real-recording import/export was checked on 0.6.0. Publication and asset verification are separate gates. Do not market it as fully tested on both operating systems. See PUBLICATION.md for reproducible packaging and explicit publication commands.
 
 ## 1. Extension qualification — next required gate
 
@@ -22,7 +22,7 @@ Status: 0.6.0 experimental browser beta. Local release checks passed on 17 Septe
 
 ## 3. Native companion for global cursor metadata and reconstruction
 
-Video-based focus analysis already works with imported screen recordings and recordings of non-browser windows. A native companion is not required for that analysis. A separate signed companion would be needed for accurate global cursor metadata and reconstructed cursor rendering; it is not part of 0.6.0.
+Video-based focus analysis already works with imported screen recordings and recordings of non-browser windows. A native companion is not required for that analysis. A separate signed companion would be needed for accurate global cursor metadata and reconstructed cursor rendering; it is not part of 0.6.1.
 
 - Shared versioned event format: monotonic timestamp, normalized coordinates, display identity/scaling, click type, recording session token. Never collect typed text.
 - Authenticated native messaging restricted to Strela's installed extension identity, explicit session start/stop and permission revocation.

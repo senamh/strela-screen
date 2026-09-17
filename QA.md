@@ -1,5 +1,21 @@
 # QA evidence
 
+## 0.6.1 design and publication checks (2026-09-17)
+
+Final runtime build: `69648fab9a6c`; 118 automated tests pass. `git diff --check` is clean. The reproducible packaging/publication command reruns the suite after the final commit.
+
+The editor, popup, static dialogs and protected-area picker were checked in the local Chrome-based studio. Viewport widths 1280, 900, 390 and 320 px had no horizontal document overflow or controls extending beyond the viewport. The saved-status text remained visible. Recording, export, project-library, protected-area and exported-video dialogs were opened; the narrow library and area picker remained within 296 px at a 320 px viewport. These are browser viewport checks, not tests on physical phones or Windows.
+
+The synthetic eight-second demo completed import, visual analysis (4 focus points) and automatic phone MP4 export with a black backdrop. Parsed output: 1206×2622, 8.00 s, audio track present, approximately 1.9 MiB. The browser decoded the export at readyState 4, duration 8.064 s, without a media error. The audio fixture is silent; presence of its audio track is not an audible synchronization test. No browser warning/error was observed during the editor checks.
+
+The pass reproduced a black paused preview at source time zero immediately after import, even though export was correct. Back to start restored the image without playing. The exact synthetic WebM had its first keyframe at zero, ruling out a positive media-start offset. Opening media now explicitly seeks to the first kept clip and waits for the decoded frame. A fresh complete demo run in the final build showed the correct first frame without Play or Back. Visibility, resize and context-restoration events request one repaint without reinstating continuous idle rendering.
+
+The new release pipeline tests deterministic ZIP bytes across timezones, both archive layouts, stale runtime/document detection, unexpected files, symlinks, checksum validation, exact tested commit/tag and refusal to overwrite mismatched assets. The default command is read-only; preparation does not publish. Publication must still verify the actual remote downloads and the saved Gumroad attachment after reload.
+
+Brand assets were inspected at their delivery dimensions: GitHub cover 1280×640, Gumroad cover 1280×720, thumbnail 600×600 and extension icons 16/32/48/128 px. Store illustrations are labelled and are not screenshots of the editor. Shared color-token contrast and static accessibility checks are automated; a full screen-reader audit has not been performed.
+
+The full real-recording test below belongs to 0.6.0 and was not repeated in this design pass. Installed-extension capture, Windows/Edge, long-video resource limits, physical-iPhone playback and audible synchronization remain separate qualification gates.
+
 ## 0.6.0 real-recording release check (2026-09-17)
 
 Build `9d8671e5ad00`, 95 automated tests passing, `git diff --check` clean. The previously unavailable recording was restored by the owner and processed locally. The private source and rendered video are not release assets and are not committed.

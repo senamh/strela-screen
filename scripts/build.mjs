@@ -5,7 +5,7 @@ const info=await buildInfo(process.cwd());
 const dir='dist/strela-screen';await mkdir(dir,{recursive:true});
 await build({entryPoints:{app:'src/app.js','export-worker':'src/export-worker.js','archive-worker':'src/archive-worker.js','analysis-worker':'src/analysis-worker.js','demo-worker':'src/demo-worker.js',background:'src/background.js',tracker:'src/tracker.js',popup:'src/popup.js'},outdir:dir,bundle:true,format:'esm',target:'chrome116',legalComments:'eof',minify:false,define:{__STRELA_BUILD_LABEL__:JSON.stringify(`${info.version} · ${info.id}`)}});
 await writeFile(dir+'/build-info.json',JSON.stringify(info,null,2)+'\n');
-for(const name of ['editor.html','editor.css','theme.css','popup.html','popup.css','manifest.json','capture-check.html','capture-check.js'])await copyFile('ui/'+name,dir+'/'+name);
+for(const name of ['editor.html','editor.css','theme.css','popup.html','popup.css','manifest.json','capture-check.html','capture-check.css','capture-check.js'])await copyFile('ui/'+name,dir+'/'+name);
 await cp('ui/icons',dir+'/icons',{recursive:true});
 await mkdir(dir+'/licenses',{recursive:true});
 for(const name of ['mediabunny','fflate','gifenc'])await copyFile('node_modules/'+name+(name==='gifenc'?'/LICENSE.md':'/LICENSE'),dir+'/licenses/'+name+'.txt');

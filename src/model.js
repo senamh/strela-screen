@@ -1,4 +1,4 @@
-export const defaults = {theme:'lavender',ratio:'wide',padding:64,radius:20,zoom:1.7,hold:2,shadow:true,clicks:false,volume:1,fps:30,resolution:1080,size:'balanced',speedup:false};
+export const defaults = {theme:'black',ratio:'wide',padding:64,radius:20,zoom:1.7,hold:2,shadow:true,clicks:false,volume:1,fps:30,resolution:1080,size:'balanced',speedup:false};
 // Target bits per pixel per frame and the floor for each export size. Screen footage is mostly static,
 // so variable-bitrate files stay well below the target; 'best' keeps the 0.4.x rate.
 export const SIZES={best:{bpp:.18,min:12e6},balanced:{bpp:.07,min:6e6},small:{bpp:.035,min:3e6}};

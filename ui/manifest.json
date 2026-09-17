@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Strela Screen",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Turn screen recordings into phone-ready demos with automatic focus, a smooth camera and local MP4 export. Nothing is uploaded.",
   "homepage_url": "https://github.com/senamh/strela-screen",
   "minimum_chrome_version": "116",

@@ -1,14 +1,20 @@
 # Strela Screen
 
-![Strela Screen — Your screen. Ready for a phone.](docs/release-cover.svg)
+![Strela Screen: desktop recordings in a phone layout](docs/release-cover.svg)
 
 **Turn desktop recordings into phone-ready demos.** Import a video, let Strela find visual areas of attention, and download a styled MP4. Processing stays on your device.
 
-[0.6.0 beta release](https://github.com/senamh/strela-screen/releases/tag/v0.6.0) · [Русская инструкция](INSTALL_RU.md) · [Report an issue](https://github.com/senamh/strela-screen/issues)
+[Download 0.6.1 beta](https://github.com/senamh/strela-screen/releases/download/v0.6.1/strela-screen-0.6.1.zip) · [Gumroad](https://shaurma.gumroad.com/l/strela-screen) · [Русская инструкция](INSTALL_RU.md) · [Report an issue](https://github.com/senamh/strela-screen/issues)
 
 > Free experimental browser beta, distributed through GitHub releases and Gumroad. Not a signed desktop app or store-listed extension. The local studio has been checked in Chrome on macOS; Windows/Edge and the installed extension still need qualification.
 
-## New in 0.6.0
+## New in 0.6.1
+
+- One graphite/red design across the editor, popup, dialogs, extension icons and release artwork, with consistent keyboard focus and responsive controls.
+- Pure black is the default backdrop for every new project and style preset. Existing projects keep their saved colors; five backgrounds remain available.
+- Reproducible release packages, SHA-256 checksums and an explicit publication command that verifies uploaded files. Previous release assets are retained.
+
+## Editing tools
 
 - Edit a focus point's time, hold and zoom, or move it in the preview. Manual corrections are retained when focus is regenerated.
 - Select a source rectangle to keep visible through camera transitions. Protect reading or narration intervals from optional pause speed-up.
@@ -28,7 +34,7 @@
 
 ## Install in Chrome or Edge
 
-1. Download **strela-screen-0.6.0.zip** from the [release assets](https://github.com/senamh/strela-screen/releases/tag/v0.6.0) and extract it.
+1. Download **strela-screen-0.6.1.zip** from the [release assets](https://github.com/senamh/strela-screen/releases/tag/v0.6.1) and extract it.
 2. Open chrome://extensions or edge://extensions, enable Developer mode and choose **Load unpacked**.
 3. Select the extracted **strela-screen** folder containing manifest.json.
 4. Open the extension → **Open studio** → **Import** a video or **Try a demo**.
@@ -54,7 +60,11 @@ npm run package   # release ZIP and Chrome Web Store ZIP in outputs/
 
 Open http://127.0.0.1:4173 for the local studio. Load **dist/strela-screen** for the extension. Localhost and the extension keep separate project libraries. Chrome 116 is the declared API minimum; use a current Chrome/Edge release. Safari and Firefox are unsupported.
 
-Run **`npm test`** for the current automated suite (95 passing in this release). [QA evidence](QA.md) separates current checks from dated historical results. The 0.6.0 build completed automatic processing of a real 2560×1440, 7:57 screen recording on 17 September 2026: 97 focus points and a 1206×2622 MP4 at 50 fps, with the full duration preserved. Sampled playback is not a guarantee that every automatic focus is semantically correct, nor cross-platform or physical-iPhone certification. [Release notes](RELEASE_NOTES.md)
+Run **`npm test`** for the current automated suite. [QA evidence](QA.md) separates current checks from dated historical results. The previous 0.6.0 build completed automatic processing of a real 2560×1440, 7:57 screen recording on 17 September 2026: 97 focus points and a 1206×2622 MP4 at 50 fps, with the full duration preserved. This is historical processing evidence, not a repeated full-length test of every release. Sampled playback is not a guarantee that every automatic focus is semantically correct, nor cross-platform or physical-iPhone certification. [Release notes](RELEASE_NOTES.md)
+
+## Publishing a release
+
+Run `npm run release:prepare` to build, test and package the same version for GitHub, Gumroad and direct download. Then follow [PUBLICATION.md](PUBLICATION.md) for explicit publication, hash verification and rollback. Store submission and Gumroad account actions are not performed automatically. Preparing files never publishes them.
 
 ## Components and source
 

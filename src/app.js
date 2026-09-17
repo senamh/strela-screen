@@ -5,7 +5,7 @@ import {Capture,clearChunks} from './capture.js';
 import {saveProject,allProjects,allChunks,projectArchive,readArchive} from './storage.js';
 import {analyzeVideo} from './analyze.js';
 import {createCorrections} from './corrections.js';
-import {needsPreviewFrame} from './preview-state.js';
+import {needsPreviewFrame,watchPreviewInvalidation,primePreviewFrame} from './preview-state.js';
 let analysisController=null,demoController=null,autoDownload=false,previewDirty=true,paintedTime=-1;
 let thumbnailController=null,thumbnailTimer=null,thumbnailPending=false,thumbnailGeneration=0;
 const $=id=>document.getElementById(id),video=$('video'),canvas=$('preview');
@@ -82,6 +82,7 @@ async function openMedia(source,existing=null,events=[]){
   thumbnailGeneration++;thumbnailPending=false;
   if(url)URL.revokeObjectURL(url);blob=source;project=next;url=URL.createObjectURL(source);video.src=url;time=0;selected=0;geometry=null;history=new History();thumbs=[];$('export-result').hidden=true;
   await new Promise((resolve,reject)=>{const timer=setTimeout(()=>done(new Error('Video loading timed out.')),12000);const loaded=()=>done();const failed=()=>done(new Error('Video playback is unsupported.'));function done(e){clearTimeout(timer);video.removeEventListener('loadeddata',loaded);video.removeEventListener('error',failed);e?reject(e):resolve();}video.addEventListener('loadeddata',loaded,{once:true});video.addEventListener('error',failed,{once:true});});
+  await primePreviewFrame(video,sourceTime(plays(),0));
   refresh();await saveLocal();thumbnailPending=true;queueThumbnails();
   say(next.events.length?'Auto-focus is ready. Play to preview, or pause and click to adjust.':'Ready to edit. Pause and click to add focus.');
 }
@@ -92,7 +93,7 @@ function frame(){
   }
   requestAnimationFrame(frame);
 }frame();
-video.addEventListener('seeked',()=>{previewDirty=true;});
+watchPreviewInvalidation({canvas,video,document,window},()=>{previewDirty=true;});
 video.addEventListener('ended',()=>{stopPlayback();if(project)time=duration(plays());});
 video.addEventListener('error',()=>say('Video playback failed. Save the original and try importing it again.'));
 $('play').onclick=async()=>{if(!editing())return;if(!video.paused)stopPlayback();else{if(time>=duration(plays())-.05)seekTo(0);try{await video.play();$('play').textContent='❚❚';}catch(e){say(e.message);}}};
@@ -143,7 +144,7 @@ $('redo').onclick=()=>{if(!editing())return;stopPlayback();project=history.redo(
 $('name').onchange=()=>edit(()=>project.name=$('name').value.trim()||'Untitled demo');
 document.querySelectorAll('[data-setting]').forEach(e=>e.onchange=()=>{const value=e.type==='checkbox'?e.checked:e.tagName==='SELECT'?e.value:Number(e.value);edit(()=>project.settings[e.dataset.setting]=value);});
 document.querySelectorAll('[data-theme]').forEach(e=>e.onclick=()=>edit(()=>project.settings.theme=e.dataset.theme));
-$('preset').onchange=()=>{const preset=$('preset').value;edit(()=>Object.assign(project.settings,preset==='phone'?{ratio:'phone',theme:'black',padding:0,radius:0,zoom:1.8,hold:2.8,shadow:false,clicks:false,resolution:1206,fps:outputRate(project.sourceFps)}:preset==='tutorial'?{zoom:2,hold:2.8,ratio:'wide',theme:'mint'}:preset==='social'?{zoom:1.5,hold:1.4,ratio:'portrait',theme:'sunset'}:{zoom:1.7,hold:2,ratio:'wide',theme:'lavender'}));};
+$('preset').onchange=()=>{const preset=$('preset').value;edit(()=>Object.assign(project.settings,preset==='phone'?{ratio:'phone',theme:defaults.theme,padding:0,radius:0,zoom:1.8,hold:2.8,shadow:false,clicks:false,resolution:1206,fps:outputRate(project.sourceFps)}:preset==='tutorial'?{zoom:2,hold:2.8,ratio:'wide',theme:defaults.theme}:preset==='social'?{zoom:1.5,hold:1.4,ratio:'portrait',theme:defaults.theme}:{zoom:1.7,hold:2,ratio:'wide',theme:defaults.theme}));};
 $('original').onclick=()=>download(blob,filename()+'-original.'+(blob.type.includes('mp4')?'mp4':'webm'));
 async function importMedia(file){if(!file||busy)return;setBusy(true);let renderAfter=false;try{
   await saveLocal();if(file.name.toLowerCase().endsWith('.strela')){const saved=await readArchive(file);await openMedia(saved.blob,saved.project);}

@@ -1,6 +1,6 @@
 # Chrome Web Store listing
 
-Draft for the 0.6.0 experimental browser beta. This is not a published or approved store listing; GitHub and Gumroad publication are separate steps.
+Draft for the 0.6.1 experimental browser beta. This is not a published or approved store listing; GitHub and Gumroad publication are separate steps.
 
 Upload `outputs/strela-screen-<version>-store.zip` (manifest at the archive root). Assets are in this folder.
 
@@ -13,7 +13,7 @@ Upload `outputs/strela-screen-<version>-store.zip` (manifest at the archive root
 - **Icon:** `ui/icons/icon128.png`
 - **Small promo tile (440×280):** `promo-440x280.png`
 - **Marquee (1400×560):** `marquee-1400x560.png`
-- **Screenshots (1280×800):** `screenshot-1-before-after.png`, `screenshot-2-phone.png`
+- **Product illustrations (1280×800):** `screenshot-1-before-after.png`, `screenshot-2-phone.png`. These legacy filenames contain labelled illustrations, not captured application screenshots. Add actual current screenshots before submitting a store listing.
 - **Homepage:** https://github.com/senamh/strela-screen
 - **Support:** https://github.com/senamh/strela-screen/issues
 
@@ -86,7 +86,7 @@ Strela Screen создаёт редактируемый вертикальный
 
 ## Submitting
 
-1. Register a developer account at https://chrome.google.com/webstore/devconsole (one-time 5 USD fee, paid by the account owner).
+1. The account owner must complete developer registration and any required payment in the official store console. Check current terms before submitting.
 2. Add item → upload the store ZIP.
 3. Fill the Store listing and Privacy practices tabs from this file, add the images.
 4. Distribution: Public, all regions. Submit for review.
