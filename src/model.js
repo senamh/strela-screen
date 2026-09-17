@@ -18,11 +18,16 @@ export function split(clips,time){let elapsed=0;for(let i=0;i<clips.length;i++){
 // second at each edge keeps normal speed; the rest is squeezed towards one second, at most 16x
 // (the browser's playback-rate limit, which the preview relies on).
 export const PAUSE={min:3,edge:.5,max:16};
-export function speedUpPauses(clips,quiet){
+export function unprotectedRanges(ranges,protectedRanges=[]){
+  let out=ranges.map(r=>[...r]);
+  for(const [a,b] of protectedRanges)out=out.flatMap(([s,e])=>b<=s||a>=e?[[s,e]]:[[s,Math.min(e,a)],[Math.max(s,b),e]].filter(([x,y])=>y>x));
+  return out.sort((a,b)=>a[0]-b[0]);
+}
+export function speedUpPauses(clips,quiet,protectedRanges=[]){
   const out=[];
   for(const c of clips){
     let cursor=c.start;
-    for(const [a,b] of quiet){
+    for(const [a,b] of unprotectedRanges(quiet,protectedRanges)){
       const from=Math.max(a+PAUSE.edge,cursor),to=Math.min(b-PAUSE.edge,c.end);
       if(b-a<PAUSE.min||to-from<1)continue;
       if(from>cursor)out.push({...c,start:cursor,end:from});
@@ -33,13 +38,22 @@ export function speedUpPauses(clips,quiet){
   return out;
 }
 // The clips that play: the user's edit, with pauses sped up when that setting is on.
-export function timeline(p){return p.settings?.speedup&&p.analysis?.quiet?.length?speedUpPauses(p.clips,p.analysis.quiet):p.clips;}
+export function timeline(p){
+  if(!p.settings?.speedup||!p.analysis?.quiet?.length)return p.clips;
+  const protectedRanges=[...(p.keepTime||[]),...(p.points||[]).map(f=>[Math.max(0,f.t-.5),f.t+(f.hold??p.settings.hold)]),...(p.events||[]).map(e=>[Math.max(0,e.t-.5),e.t+2])];
+  return speedUpPauses(p.clips,p.analysis.quiet,protectedRanges);
+}
 export function autoFocus(events){
   const clicks=events.filter(e=>e.type==='click'&&Number.isFinite(e.t)&&e.x>=0&&e.x<=1&&e.y>=0&&e.y<=1).sort((a,b)=>a.t-b.t);
   const groups=[];
   for(const e of clicks){const last=groups.at(-1);if(last&&e.t-last.last<1.3&&Math.hypot(e.x-last.x,e.y-last.y)<.18){last.x=(last.x*last.count+e.x)/(last.count+1);last.y=(last.y*last.count+e.y)/(last.count+1);last.last=e.t;last.count++;}else groups.push({...e,last:e.t,count:1});}
   return groups.map(g=>({id:crypto.randomUUID(),t:g.t,x:g.x,y:g.y,auto:true}));
 }
+export function mergeFocus(points,generated){
+  const manual=points.filter(p=>!p.auto);
+  return [...manual,...generated.filter(g=>!manual.some(p=>p.id===g.id||p.replaces&&Math.abs(p.replaces.t-g.t)<.6&&Math.hypot(p.replaces.x-g.x,p.replaces.y-g.y)<.15))].sort((a,b)=>a.t-b.t);
+}
+export function markManual(point){if(point.auto&&!point.replaces)point.replaces={t:point.t,x:point.x,y:point.y};point.auto=false;}
 // Camera planning. Focus points are grouped into shots. The frame arrives LEAD seconds before an
 // action and stays at least `hold` seconds after it; when the next shot is close, it pans straight
 // there instead of zooming out and back in. Averaging neighbouring points parked the frame between
@@ -52,23 +66,23 @@ const paths=new Map();
 function timelineClamp(clips,t){let elapsed=0;for(const c of clips){if(t<c.start)return elapsed;if(t<c.end)return elapsed+(t-c.start)/rate(c);elapsed+=(c.end-c.start)/rate(c);}return elapsed;}
 function shots(points){
   const out=[];
-  for(const p of points){const last=out.at(-1);if(last&&p.t-last.t1<MERGE_T&&Math.hypot(p.x-last.x,p.y-last.y)<MERGE_D){const n=last.n+1;last.x=(last.x*last.n+p.x)/n;last.y=(last.y*last.n+p.y)/n;last.t1=p.t;last.n=n;if(p.w>0&&p.h>0){last.w=Math.max(last.w||0,p.w);last.h=Math.max(last.h||0,p.h);}}else out.push({t0:p.t,t1:p.t,x:p.x,y:p.y,w:p.w,h:p.h,n:1});}
+  for(const p of points){const last=out.at(-1);if(last&&last.zoom===undefined&&last.hold===undefined&&p.zoom===undefined&&p.hold===undefined&&p.t-last.t1<MERGE_T&&Math.hypot(p.x-last.x,p.y-last.y)<MERGE_D){const n=last.n+1;last.x=(last.x*last.n+p.x)/n;last.y=(last.y*last.n+p.y)/n;last.t1=p.t;last.n=n;if(p.w>0&&p.h>0){last.w=Math.max(last.w||0,p.w);last.h=Math.max(last.h||0,p.h);}}else out.push({t0:p.t,t1:p.t,x:p.x,y:p.y,w:p.w,h:p.h,zoom:p.zoom,hold:p.hold,n:1});}
   return out;
 }
 function plan(points,settings,bw,bh){
   const sticky=bw<.98||bh<.98,list=shots(points),keys=[];
   const crop=(x,y,z)=>{const w=bw/z,h=bh/z;return {x:clamp(x-w/2,0,1-w),y:clamp(y-h/2,0,1-h),w,h};};
   // Visual changes carry their changed area: small controls get a closer shot, large panels a wider one.
-  const shot=s=>crop(s.x,s.y,s.w>0&&s.h>0?clamp(.6*Math.min(bw/s.w,bh/s.h),1+(settings.zoom-1)*.4,settings.zoom):settings.zoom);
+  const shot=s=>crop(s.x,s.y,s.zoom??(s.w>0&&s.h>0?clamp(.6*Math.min(bw/s.w,bh/s.h),1+(settings.zoom-1)*.4,settings.zoom):settings.zoom));
   const rest=s=>crop(sticky&&s?s.x:.5,sticky&&s?s.y:.5,1);
   const key=(t,r)=>keys.push({t:keys.length?Math.max(t,keys.at(-1).t):t,r});
   // One crop object per shot: the path treats consecutive keys sharing a crop as a hold.
   const rects=list.map(shot);key(-1,rest(list[0]));let arrived=false;
   list.forEach((s,i)=>{
-    const r=rects[i],next=list[i+1],leave=s.t1+settings.hold;
+    const r=rects[i],next=list[i+1],leave=s.t1+(s.hold??settings.hold);
     if(!arrived){const start=Math.max(keys.at(-1).t,s.t0-LEAD-ZOOM_IN);key(start,keys.at(-1).r);key(Math.max(s.t0-LEAD,start+PAN_MIN),r);}
     arrived=!!next&&next.t0-LEAD-ZOOM_IN-(leave+ZOOM_OUT)<CONNECT;
-    if(arrived){const start=Math.max(next.t0-LEAD-PAN_MAX,s.t1+MIN_HOLD);key(start,r);key(Math.max(next.t0-LEAD,start+PAN_MIN),rects[i+1]);}
+    if(arrived){const start=Math.max(next.t0-LEAD-PAN_MAX,s.t1+MIN_HOLD,s.hold===undefined?0:Math.min(leave,next.t0-LEAD-PAN_MIN));key(start,r);key(Math.max(next.t0-LEAD,start+PAN_MIN),rects[i+1]);}
     else{key(leave,r);key(leave+ZOOM_OUT,rest(s));}
   });
   return keys;
@@ -88,7 +102,7 @@ function chase(x,v,goal,dt){const y=x-goal,e=Math.exp(-OMEGA*dt),a=v+OMEGA*y;ret
 const trackIds=new WeakMap();
 function trackId(track){if(!track.length)return '';if(!trackIds.has(track))trackIds.set(track,JSON.stringify(track));return trackIds.get(track);}
 function path(points,track,settings,width,height,aspect){
-  const id=JSON.stringify([points.map(p=>[p.t,p.x,p.y,p.w,p.h]),settings.zoom,settings.hold,width,height,aspect])+trackId(track);
+  const id=JSON.stringify([points.map(p=>[p.t,p.x,p.y,p.w,p.h,p.zoom,p.hold]),settings.zoom,settings.hold,width,height,aspect])+trackId(track);
   if(paths.has(id))return paths.get(id);
   const bw=Math.min(width,height*aspect)/width,bh=Math.min(width/aspect,height)/height,keys=plan(points,settings,bw,bh);
   const count=Math.ceil((keys.at(-1).t+2)*RATE)+1,data=new Float64Array(count*3),v=[0,0,0],c=[];
@@ -120,12 +134,20 @@ function path(points,track,settings,width,height,aspect){
 // `track` holds [time, x, y] visual changes in source time; it only refines framing between the
 // planned moves, which still come from the editable focus points.
 export function camera(points,t,width,height,settings=defaults,aspect=width/height,clips=null,track=[]){
+  const area=settings.keepArea;
+  // If a protected rectangle is wider/taller than the output, use the closest feasible crop
+  // aspect. The renderer contains it inside the output; it must not stretch or trim the text.
+  if(area)aspect=clamp(aspect,area.w*width/height,width/(area.h*height));
   const timed=[];for(const p of points){const at=clips?timelineTime(clips,p.t):p.t;if(at!==null)timed.push({...p,t:at});}timed.sort((a,b)=>a.t-b.t);
   const follows=clips?track.map(([s,x,y])=>[timelineTime(clips,s),x,y]).filter(h=>h[0]!==null):track;
   if(clips&&track.length&&!trackIds.has(follows)){trackIds.set(follows,trackId(track)+JSON.stringify(clips));}
   const {data,end,final,ratio}=path(timed,follows,settings,width,height,aspect),at=Math.max(0,clips?timelineClamp(clips,t):t);
   let r=final;
   if(at<end){const f=at*RATE,i=Math.floor(f),k=f-i,j=i*3,n=j+3;r={x:data[j]+(data[n]-data[j])*k,y:data[j+1]+(data[n+1]-data[j+1])*k,w:data[j+2]+(data[n+2]-data[j+2])*k};r.h=r.w*ratio;}
+  if(area){
+    const w=Math.min(1,Math.max(r.w,area.w,area.h/ratio)),h=Math.min(1,w*ratio);
+    r={w,h,x:clamp(r.x,Math.max(0,area.x+area.w-w),Math.min(area.x,1-w)),y:clamp(r.y,Math.max(0,area.y+area.h-h),Math.min(area.y,1-h))};
+  }
   return {x:r.x*width,y:r.y*height,w:r.w*width,h:r.h*height};
 }
 export function validateProject(raw){
@@ -134,13 +156,18 @@ export function validateProject(raw){
   if(raw.clips.some((c,i)=>i>0&&c.start<raw.clips[i-1].end))throw new Error('Clip ranges must be ordered and non-overlapping.');
   if(raw.clips.some(c=>c.speed!==undefined&&!(c.speed>=1&&c.speed<=PAUSE.max)))throw new Error('Invalid clip speed.');
   if(!Array.isArray(raw.points)||raw.points.length>10000||raw.points.some(p=>!Number.isFinite(p.t)||p.t<0||p.t>raw.duration||!Number.isFinite(p.x)||!Number.isFinite(p.y)||p.x<0||p.x>1||p.y<0||p.y>1))throw new Error('Invalid focus points.');
+  if(raw.points.some(p=>[['zoom',1,3],['hold',.2,30],['w',.000001,1],['h',.000001,1]].some(([k,a,b])=>p[k]!==undefined&&(!Number.isFinite(p[k])||p[k]<a||p[k]>b))))throw new Error('Invalid focus adjustment.');
+  if(raw.points.some(p=>p.replaces!==undefined&&(!p.replaces||!['t','x','y'].every(k=>Number.isFinite(p.replaces[k]))||p.replaces.t<0||p.replaces.t>raw.duration||p.replaces.x<0||p.replaces.x>1||p.replaces.y<0||p.replaces.y>1)))throw new Error('Invalid focus source cue.');
+  if(raw.keepTime!==undefined&&(!Array.isArray(raw.keepTime)||raw.keepTime.length>1000||raw.keepTime.some(r=>!Array.isArray(r)||r.length!==2||!r.every(Number.isFinite)||r[0]<0||r[1]>raw.duration||r[1]<=r[0])))throw new Error('Invalid protected time ranges.');
   const s={...defaults,...raw.settings};
+  if(s.keepArea!==undefined&&s.keepArea!==null){const a=s.keepArea;if(!['x','y','w','h'].every(k=>Number.isFinite(a[k]))||a.x<0||a.y<0||a.w<=0||a.h<=0||a.x+a.w>1+1e-9||a.y+a.h>1+1e-9)throw new Error('Invalid protected area.');}
   if(!['wide','portrait','square','phone'].includes(s.ratio)||!['lavender','mint','sunset','midnight','black'].includes(s.theme))throw new Error('Invalid visual settings.');
   for(const [key,min,max] of [['padding',0,180],['radius',0,80],['zoom',1,3],['hold',.8,5],['volume',0,2]]){if(!Number.isFinite(s[key])||s[key]<min||s[key]>max)throw new Error('Invalid '+key);}
   if(typeof s.speedup!=='boolean')throw new Error('Invalid pause setting.');
   if(![30,50,60].includes(s.fps)||![720,1080,1206,2160].includes(s.resolution)||!Object.hasOwn(SIZES,s.size))throw new Error('Invalid export settings.');
   const events=Array.isArray(raw.events)?raw.events.filter(e=>e.type==='click'&&Number.isFinite(e.t)&&e.t>=0&&e.t<=raw.duration&&Number.isFinite(e.x)&&Number.isFinite(e.y)&&e.x>=0&&e.x<=1&&e.y>=0&&e.y<=1).slice(0,10000):[];
-  return {...raw,name:String(raw.name||'Untitled').slice(0,100),settings:s,events};
+  const ids=new Set(),points=raw.points.map(p=>{const id=typeof p.id==='string'&&p.id.length>0&&!ids.has(p.id)?p.id:crypto.randomUUID();ids.add(id);return {...p,id};});
+  return {...raw,name:String(raw.name||'Untitled').slice(0,100),points,settings:s,events};
 }
 export class History {
   constructor(){this.past=[];this.future=[];}

@@ -1,6 +1,6 @@
 # Production release gates
 
-Status: 0.2.0 browser beta. Do not market it as fully tested on both operating systems yet.
+Status: 0.6.0 experimental browser beta. Local release checks passed on 17 September 2026, including a full real-recording import/export; publication and asset verification are tracked separately. Do not market it as fully tested on both operating systems. Current and historical test evidence is separated in QA.md.
 
 ## 1. Extension qualification — next required gate
 
@@ -20,9 +20,9 @@ Status: 0.2.0 browser beta. Do not market it as fully tested on both operating s
 - Verify `.strela` save/import in the actual extension, local library after browser restart, full storage, corrupt input and forced-termination recovery. An incomplete final recording chunk may not be recoverable.
 - Audit keyboard/focus behavior, screen-reader labels and small-screen layouts.
 
-## 3. Native companion — required for desktop-wide auto-focus
+## 3. Native companion for global cursor metadata and reconstruction
 
-Build and qualify a separate signed companion for each OS; this is not part of 0.2.0.
+Video-based focus analysis already works with imported screen recordings and recordings of non-browser windows. A native companion is not required for that analysis. A separate signed companion would be needed for accurate global cursor metadata and reconstructed cursor rendering; it is not part of 0.6.0.
 
 - Shared versioned event format: monotonic timestamp, normalized coordinates, display identity/scaling, click type, recording session token. Never collect typed text.
 - Authenticated native messaging restricted to Strela's installed extension identity, explicit session start/stop and permission revocation.
@@ -34,5 +34,8 @@ Build and qualify a separate signed companion for each OS; this is not part of 0
 
 - Decide supported OS/browser versions from measured results, not the minimum API declaration.
 - Package stable release, verify third-party notices/source availability for exact bundled versions, provide privacy policy and uninstall/data-removal guidance.
+- For this experimental release, run the current build/test suite and the import → analysis → MP4 checks, then document untested cases. Rebuild both ZIPs after the final code/documentation edits, verify their version and contents, and retain the previous release for rollback.
+- Verify the published GitHub assets and Gumroad download against the final package. If importing, analysis or export has a release-blocking regression, withdraw the affected asset and restore the prior package while preserving project-backup guidance.
+- Compare `build-info.json` with the identifier in the editor and extension popup after reloading the installed extension. The manifest version alone does not distinguish local revisions. Back up projects first; do not uninstall the extension to update its files.
 - Store listing/review, signing credentials and publication require the owner's account and approval. No store publication or certificate purchase has been performed.
 - Optional subsequent features: webcam track, captions, reusable branding, native installers and automatic updates. None are present in this beta.

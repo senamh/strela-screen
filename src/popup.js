@@ -1,3 +1,4 @@
+document.querySelector('#build-info').textContent=__STRELA_BUILD_LABEL__;
 document.querySelector('#open').onclick=async()=>{
   const button=document.querySelector('#open');button.disabled=true;
   try{

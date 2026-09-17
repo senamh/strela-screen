@@ -1,15 +1,20 @@
-import {defaults,duration,sourceTime,timelineTime,split,autoFocus,History,clamp,validateProject,outputRate,timeline} from './model.js';
+import {defaults,duration,sourceTime,timelineTime,split,autoFocus,mergeFocus,History,clamp,validateProject,outputRate,timeline} from './model.js';
 import {render,size} from './render.js';
 import {inspect,thumbnails,demo} from './media.js';
 import {Capture,clearChunks} from './capture.js';
 import {saveProject,allProjects,allChunks,projectArchive,readArchive} from './storage.js';
 import {analyzeVideo} from './analyze.js';
-let analysisController=null,autoDownload=false;
+import {createCorrections} from './corrections.js';
+import {needsPreviewFrame} from './preview-state.js';
+let analysisController=null,demoController=null,autoDownload=false,previewDirty=true,paintedTime=-1;
+let thumbnailController=null,thumbnailTimer=null,thumbnailPending=false,thumbnailGeneration=0;
 const $=id=>document.getElementById(id),video=$('video'),canvas=$('preview');
+$('build-info').textContent=__STRELA_BUILD_LABEL__;
 let project=null,blob=null,url=null,time=0,selected=0,geometry=null,busy=false,history=new History(),thumbs=[],worker=null,exportBlob=null,exportURL=null,saveQueue=Promise.resolve(),saveTimer=null,saveError=false;
 let target=new URLSearchParams(location.search).get('target');
 const isExtension=!!globalThis.chrome?.runtime?.id;
 const say=text=>$('status').textContent=text;
+const corrections=createCorrections({getProject:()=>project,isEditing:editing,edit,seek:t=>{stopPlayback();seekTo(timelineTime(plays(),t)??0);},say,video});
 if(isExtension)chrome.runtime.onMessage.addListener((m,sender)=>{
   if(m.type!=='SELECT_SOURCE'||sender.id!==chrome.runtime.id||sender.url!==chrome.runtime.getURL('popup.html')||!Number.isInteger(m.target))return;
   // Only the reused studio receives the new source; never interrupt an active recording.
@@ -21,9 +26,25 @@ const clock=t=>`${String(Math.floor(t/60)).padStart(2,'0')}:${String(Math.floor(
 function editing(){return !!project&&!busy;}
 function download(data,name){const u=URL.createObjectURL(data),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),60000);}
 function filename(){return (project?.name||'strela').replace(/[^\p{L}\p{N}_ -]/gu,'').trim().slice(0,70)||'strela';}
-function setBusy(value){busy=value;document.querySelectorAll('main button,main input,main select,.topbar button,.topbar input').forEach(e=>e.disabled=value);refreshButtons();}
+function setBusy(value){if(value){stopPlayback();cancelThumbnails();}busy=value;previewDirty=true;document.querySelectorAll('main button,main input,main select,.topbar button,.topbar input').forEach(e=>e.disabled=value);refreshButtons();if(!value)queueThumbnails();}
+function cancelThumbnails(){
+  if(thumbnailTimer!==null){clearTimeout(thumbnailTimer);thumbnailTimer=null;}
+  if(thumbnailController){const previous=thumbnailController;thumbnailController=null;thumbnailPending=true;previous.abort();}
+}
+function queueThumbnails(){
+  if(busy||!project||!blob||!thumbnailPending||thumbnailController||thumbnailTimer!==null)return;
+  const generation=thumbnailGeneration,source=blob;
+  // Wait one turn so automatic import -> export never starts an unnecessary decoder.
+  thumbnailTimer=setTimeout(()=>{
+    thumbnailTimer=null;if(busy||generation!==thumbnailGeneration||!thumbnailPending)return;
+    const controller=new AbortController();thumbnailController=controller;thumbnailPending=false;
+    thumbnails(source,10,controller.signal).then(images=>{
+      if(thumbnailController===controller&&generation===thumbnailGeneration&&!controller.signal.aborted){thumbs=images;refresh();}
+    }).catch(()=>{}).finally(()=>{if(thumbnailController===controller)thumbnailController=null;});
+  },0);
+}
 function refreshButtons(){for(const id of ['play','back','seek','save','export','original','split','trim','trim-start','trim-end'])$(id).disabled=!project||busy;$('delete-clip').disabled=!project||busy||project.clips.length<2;$('auto').disabled=!project||busy;$('undo').disabled=busy||!history.past.length;$('redo').disabled=busy||!history.future.length;for(const key of ['padding','shadow'])document.querySelector('[data-setting='+key+']').disabled=busy||project?.settings.ratio==='phone';}
-function stopPlayback(){video.pause();$('play').textContent='▶';}
+function stopPlayback(){video.pause();previewDirty=true;$('play').textContent='▶';}
 function currentSnapshot(){return structuredClone(project);}
 function saveLocal(){
   if(!project)return Promise.resolve();clearTimeout(saveTimer);
@@ -34,15 +55,16 @@ function saveLocal(){
 function changed(){clearTimeout(saveTimer);saveTimer=setTimeout(saveLocal,250);$('export-result').hidden=true;refresh();}
 function edit(fn){if(!editing())return;stopPlayback();history.push(currentSnapshot());fn();time=clamp(time,0,duration(plays()));selected=clamp(selected,0,project.clips.length-1);seekTo(time);changed();}
 function refresh(){
+  previewDirty=true;
   refreshButtons();if(!project)return;
   $('empty').hidden=true;$('name').value=project.name;$('seek').max=duration(plays());$('seek').value=time;
   document.querySelectorAll('[data-setting]').forEach(e=>{const value=project.settings[e.dataset.setting];if(e.type==='checkbox')e.checked=value;else e.value=value;});
-  document.querySelectorAll('[data-theme]').forEach(e=>e.classList.toggle('selected',e.dataset.theme===project.settings.theme));
+  document.querySelectorAll('[data-theme]').forEach(e=>{const active=e.dataset.theme===project.settings.theme;e.classList.toggle('selected',active);e.setAttribute('aria-pressed',String(active));});
   const clips=$('clips');clips.replaceChildren();project.clips.forEach((c,i)=>{const b=document.createElement('button');b.className='clip'+(i===selected?' selected':'');b.style.flex=String(c.end-c.start);b.disabled=busy;b.setAttribute('aria-label',`Select clip ${i+1}`);if(thumbs.length)b.style.backgroundImage=`url("${thumbs[Math.min(thumbs.length-1,Math.floor(c.start/project.duration*thumbs.length))]}")`;const span=document.createElement('span');span.textContent=`${i+1} · ${(c.end-c.start).toFixed(1)}s`;b.append(span);b.onclick=()=>{selected=i;stopPlayback();seekTo(timelineTime(plays(),c.start)??0);refresh();};clips.append(b);});
   $('trim-start').value=project.clips[selected].start.toFixed(2);$('trim-end').value=project.clips[selected].end.toFixed(2);
-  const points=$('points');points.replaceChildren();project.points.forEach((p,i)=>{if(timelineTime(project.clips,p.t)===null)return;const b=document.createElement('button');b.disabled=busy;b.textContent=(p.auto?'✦ ':'')+p.t.toFixed(1)+'s ×';b.setAttribute('aria-label','Remove focus at '+p.t.toFixed(1)+' seconds');b.onclick=()=>edit(()=>project.points.splice(i,1));points.append(b);});
+  corrections.refresh();
   const sped=plays().filter(c=>c.speed>1),pauses=(project.analysis?.quiet||[]).filter(([a,b])=>b-a>=3).length;$('speedup').checked=!!project.settings.speedup;
-  $('pause-note').textContent=project.settings.speedup?(sped.length?`${sped.length} pause${sped.length===1?'':'s'} sped up: ${clock(duration(project.clips))} → ${clock(duration(plays()))}. Their audio is muted.`:'No pauses of 3 seconds or longer.'):project.analysis?.version===4?`${pauses} pause${pauses===1?'':'s'} of 3 seconds or longer found.`:'Plays stretches without on-screen change up to 16× faster. Their audio is muted.';
+  $('pause-note').textContent=project.settings.speedup?(sped.length?`${sped.length} pause${sped.length===1?'':'s'} sped up: ${clock(duration(project.clips))} → ${clock(duration(plays()))}. Their audio is muted.`:'No unprotected pauses to speed up.'):`${pauses} still interval${pauses===1?'':'s'} found. Reading and narration cannot be detected; protect their time before enabling speed-up.`;
   const found=project.analysis?.points.length??0;
   $('auto-note').textContent=project.events.length?`${project.events.length} click cues available. Auto-focus stays editable.`:project.analysis?project.analysis.error?'Analysis unavailable; full frame preserved. Pause and click to add focus.':found?`${found} visual focus point${found===1?'':'s'}. Review focus before sharing.`:'No reliable local changes: full frame preserved. Pause and click to add focus.':'Generate auto-focus analyses the video on this device. You can also pause and click to add focus.';
   $('source-info').textContent=`${project.width} × ${project.height} · ${project.audio?'With audio':'No audio'} · ${(blob.size/1024/1024).toFixed(1)} MB`;
@@ -51,24 +73,26 @@ function refresh(){
 }
 function seekTo(t){time=clamp(t,0,duration(plays()));const st=Math.min(project.duration-.001,sourceTime(plays(),time));video.currentTime=Math.max(0,st);$('seek').value=time;}
 async function openMedia(source,existing=null,events=[]){
-  stopPlayback();const metadata=await inspect(source);
+  stopPlayback();cancelThumbnails();const metadata=await inspect(source);
   if(!Number.isFinite(metadata.duration)||metadata.duration<=.05)throw new Error('The recording is empty or its duration could not be read.');
   if(existing){existing=validateProject(existing);if(existing.duration>metadata.duration+.1)throw new Error('Project ranges do not match its source video.');}
   const next=existing||{id:crypto.randomUUID(),version:1,name:source.name?.replace(/\.[^.]+$/,'')||'Untitled demo',mime:source.type,...metadata,clips:[{start:0,end:metadata.duration}],events:events.filter(e=>e.t>=0&&e.t<metadata.duration),points:[],settings:{...defaults}};
   if(!existing)next.points=autoFocus(next.events);
   Object.assign(next,{width:metadata.width,height:metadata.height,mediaStart:metadata.mediaStart,audio:metadata.audio,sourceFps:metadata.sourceFps});
+  thumbnailGeneration++;thumbnailPending=false;
   if(url)URL.revokeObjectURL(url);blob=source;project=next;url=URL.createObjectURL(source);video.src=url;time=0;selected=0;geometry=null;history=new History();thumbs=[];$('export-result').hidden=true;
   await new Promise((resolve,reject)=>{const timer=setTimeout(()=>done(new Error('Video loading timed out.')),12000);const loaded=()=>done();const failed=()=>done(new Error('Video playback is unsupported.'));function done(e){clearTimeout(timer);video.removeEventListener('loadeddata',loaded);video.removeEventListener('error',failed);e?reject(e):resolve();}video.addEventListener('loadeddata',loaded,{once:true});video.addEventListener('error',failed,{once:true});});
-  refresh();await saveLocal();const id=project.id;thumbnails(blob).then(images=>{if(project?.id===id){thumbs=images;refresh();}}).catch(()=>{});
+  refresh();await saveLocal();thumbnailPending=true;queueThumbnails();
   say(next.events.length?'Auto-focus is ready. Play to preview, or pause and click to adjust.':'Ready to edit. Pause and click to add focus.');
 }
 function frame(){
-  if(project&&video.readyState>=2){
+  if(project&&needsPreviewFrame({readyState:video.readyState,paused:video.paused,busy,dirty:previewDirty,time:video.currentTime,paintedTime})){
     if(!video.paused){const clips=plays(),now=clips.find(c=>video.currentTime>=c.start&&video.currentTime<c.end),speed=now?.speed||1;if(video.playbackRate!==speed){video.playbackRate=speed;video.muted=speed>1;}let mapped=timelineTime(clips,video.currentTime);if(mapped===null){const next=clips.find(c=>c.start>=video.currentTime-.02);if(next)video.currentTime=next.start;else{stopPlayback();time=duration(plays());}}else time=mapped;}
-    geometry=render(canvas,video,project.width,project.height,project,video.currentTime);$('seek').value=time;$('clock').textContent=`${clock(time)} / ${clock(duration(plays()))}`;
+    geometry=render(canvas,video,project.width,project.height,project,video.currentTime);paintedTime=video.currentTime;previewDirty=false;$('seek').value=time;$('clock').textContent=`${clock(time)} / ${clock(duration(plays()))}`;
   }
   requestAnimationFrame(frame);
 }frame();
+video.addEventListener('seeked',()=>{previewDirty=true;});
 video.addEventListener('ended',()=>{stopPlayback();if(project)time=duration(plays());});
 video.addEventListener('error',()=>say('Video playback failed. Save the original and try importing it again.'));
 $('play').onclick=async()=>{if(!editing())return;if(!video.paused)stopPlayback();else{if(time>=duration(plays())-.05)seekTo(0);try{await video.play();$('play').textContent='❚❚';}catch(e){say(e.message);}}};
@@ -76,7 +100,7 @@ $('back').onclick=()=>{stopPlayback();seekTo(0);};$('seek').oninput=()=>{stopPla
 canvas.onclick=e=>{
   if(!editing()||!video.paused||!geometry)return;const b=canvas.getBoundingClientRect(),x=(e.clientX-b.left)*canvas.width/b.width,y=(e.clientY-b.top)*canvas.height/b.height,o=geometry.overview,g=o&&x>=o.x&&x<=o.x+o.w&&y>=o.y&&y<=o.y+o.h?o:geometry;
   if(x<g.x||y<g.y||x>g.x+g.w||y>g.y+g.h)return;
-  edit(()=>project.points.push({id:crypto.randomUUID(),t:video.currentTime,x:(g.crop.x+(x-g.x)/g.w*g.crop.w)/project.width,y:(g.crop.y+(y-g.y)/g.h*g.crop.h)/project.height,auto:false}));
+  corrections.place((g.crop.x+(x-g.x)/g.w*g.crop.w)/project.width,(g.crop.y+(y-g.y)/g.h*g.crop.h)/project.height);
 };
 // Split the user's edit at the same source moment, whatever speed the effective timeline plays at.
 $('split').onclick=()=>edit(()=>project.clips=split(project.clips,timelineTime(project.clips,sourceTime(plays(),time))??time));
@@ -93,18 +117,19 @@ async function findFocus(){
 function focusReport(result){return result.error?'Analysis failed: '+result.error+' Pause and click the video to add focus.':result.points.length?`${result.points.length} focus point${result.points.length===1?'':'s'} found. Play to preview, then export.`:'No clear areas of change found, so the full frame stays. Pause and click the video to add focus.';}
 $('auto').onclick=async()=>{
   if(!editing())return;
-  if(project.events.length){edit(()=>project.points=[...project.points.filter(p=>!p.auto),...autoFocus(project.events)]);say(`${project.points.filter(p=>p.auto).length} focus points from recorded clicks.`);return;}
-  // Version 2 fixed missed WebM frames, 3 added changed-area sizes, 4 adds pauses and the follow track. Older analyses are redone.
-  let result=project.analysis?.version===4&&!project.analysis.error&&project.analysis.points.length?project.analysis:null;
+  if(project.events.length){edit(()=>project.points=mergeFocus(project.points,autoFocus(project.events)));say(`${project.points.filter(p=>p.auto).length} focus points from recorded clicks.`);return;}
+  // Version 5 filters repeated reversible background changes before planning shots/follow.
+  let result=project.analysis?.version===5&&!project.analysis.error?project.analysis:null;
   if(!result){stopPlayback();setBusy(true);try{result=await findFocus();}catch(error){say('Analysis cancelled. Focus points are unchanged.');}finally{setBusy(false);}}
   if(!result)return;
-  edit(()=>{project.points=[...project.points.filter(p=>!p.auto),...structuredClone(result.points)];project.analysis={method:'visual-change',...result};});
+  if(result.error){say(focusReport(result)+' Existing focus points are unchanged.');return;}
+  edit(()=>{project.points=mergeFocus(project.points,structuredClone(result.points));project.analysis={method:'visual-change',...result};});
   say(focusReport(result));
 };
 $('speedup').onchange=async()=>{
   if(!editing()){refresh();return;}
   const on=$('speedup').checked;
-  if(on&&project.analysis?.version!==4){
+  if(on&&project.analysis?.version!==5){
     // Pauses come from analysis; earlier analyses did not record them.
     stopPlayback();setBusy(true);let result;try{result=await findFocus();}catch(error){say('Analysis cancelled. Pauses play at normal speed.');}finally{setBusy(false);}
     if(!result||result.error){if(result?.error)say('Analysis failed: '+result.error);refresh();return;}
@@ -126,7 +151,8 @@ async function importMedia(file){if(!file||busy)return;setBusy(true);let renderA
     await openMedia(file);const result=await findFocus();
     project.points=result.points;project.analysis={method:'visual-change',...result};
     Object.assign(project.settings,{ratio:'phone',theme:'black',padding:0,radius:0,zoom:1.8,hold:2.8,shadow:false,clicks:false,resolution:1206,fps:outputRate(project.sourceFps)});
-    $('preset').value='phone';refresh();await saveLocal();renderAfter=true;
+    $('preset').value='phone';refresh();await saveLocal();renderAfter=!result.error;
+    if(result.error)say(focusReport(result)+' Automatic export was paused. Retry Generate auto-focus or export the full frame.');
   }
  }catch(error){say(error.name==='AbortError'?'Analysis cancelled. Original video remains available.':error.message);}
  finally{setBusy(false);}
@@ -150,11 +176,11 @@ $('start-record').onclick=async()=>{
   }catch(e){say('Recording: '+e.message);}finally{setBusy(false);$('recording').hidden=true;}
 };
 $('pause-record').onclick=()=>capture.pause();$('stop-record').onclick=()=>capture.stop();
-$('demo').onclick=async()=>{if(busy)return;setBusy(true);$('progress-title').textContent='Preparing a sample story…';$('progress-label').textContent='Creating a sample for the automatic import pipeline';$('progress').value=0;$('cancel').hidden=true;$('progress-dialog').showModal();let sample;try{sample=await demo(p=>$('progress').value=p);}catch(e){say(e.message);}finally{$('progress-dialog').close();setBusy(false);}if(sample)await importMedia(new File([sample.blob],'Fieldnotes demo.webm',{type:sample.blob.type}));};
+$('demo').onclick=async()=>{if(busy)return;stopPlayback();setBusy(true);demoController=new AbortController();$('progress-title').textContent='Preparing a sample story…';$('progress-label').textContent='Creating a sample for the automatic import pipeline';$('progress').value=0;$('cancel').hidden=false;$('cancel').textContent='Cancel demo';$('progress-dialog').showModal();let sample;try{sample=await demo(p=>$('progress').value=p,demoController.signal);}catch(e){say(e.name==='AbortError'?'Demo cancelled. Your project is unchanged.':'Demo failed: '+e.message);}finally{demoController=null;$('progress-dialog').close();setBusy(false);}if(sample)await importMedia(new File([sample.blob],'Fieldnotes demo.webm',{type:sample.blob.type}));};
 $('export').onclick=()=>{if(!editing())return;for(const o of $('fps').options)o.textContent=o.value+' fps'+(project.sourceFps&&Number(o.value)===outputRate(project.sourceFps)?' · matches source':'');$('resolution').value=project.settings.resolution;$('fps').value=project.settings.fps;$('size').value=project.settings.size;$('quality-note').textContent='Small text: use MP4 and a 1440p/4K source. Phone mode keeps the full frame above the detail. Upscaling cannot restore missing detail.';$('export-dialog').showModal();};
 $('format').onchange=()=>{$('resolution').disabled=$('fps').disabled=$('size').disabled=$('format').value==='gif';};
 function finishExport(){worker?.terminate();worker=null;$('progress-dialog').close();setBusy(false);}
-$('cancel').onclick=()=>{if(analysisController){analysisController.abort();return;}finishExport();say('Export cancelled. Your project is unchanged.');};
+$('cancel').onclick=()=>{cancelThumbnails();thumbnailPending=false;if(demoController){demoController.abort();return;}if(analysisController){analysisController.abort();return;}finishExport();say('Export cancelled. Your project is unchanged.');};
 $('progress-dialog').addEventListener('cancel',e=>e.preventDefault());
 $('start-export').onclick=()=>{
   if(!editing())return;stopPlayback();const format=$('format').value;project.settings.resolution=Number($('resolution').value);project.settings.fps=Number($('fps').value);project.settings.size=$('size').value;saveLocal();$('export-dialog').close();setBusy(true);$('progress-title').textContent='Rendering your video…';$('progress-label').textContent='Preparing codecs';$('progress').value=0;$('cancel').hidden=false;$('cancel').textContent='Cancel export';$('progress-dialog').showModal();
@@ -162,8 +188,9 @@ $('start-export').onclick=()=>{
   // Only the automatic import render saves on its own; manual exports wait for Download.
   const saveAfter=autoDownload;autoDownload=false;
   const exportProject=currentSnapshot();
-  worker=new Worker('export-worker.js',{type:'module'});const activeWorker=worker;
+  try{worker=new Worker('export-worker.js',{type:'module'});}catch(e){finishExport();say('Export could not start: '+e.message);return;}const activeWorker=worker;
   worker.onerror=e=>{if(worker!==activeWorker)return;finishExport();say('Export failed: '+e.message);};
+  worker.onmessageerror=()=>{if(worker!==activeWorker)return;finishExport();say('Export failed: the result could not be read. Retry the export.');};
   worker.onmessage=async({data})=>{
     if(worker!==activeWorker)return;
     if(data.type==='progress'){$('progress').value=data.progress;$('progress-label').textContent=Math.round(data.progress*100)+'% · frames and audio';}
@@ -187,7 +214,7 @@ $('start-export').onclick=()=>{
       }catch(e){if(worker===activeWorker)say('Output validation failed: '+e.message);}
       finally{if(worker===activeWorker)finishExport();}
     }
-  };worker.postMessage({project:exportProject,blob,format});
+  };try{worker.postMessage({project:exportProject,blob,format});}catch(e){finishExport();say('Export could not start: '+e.message);}
 };
 $('watch-export').onclick=()=>{$('watch-dialog').showModal();};$('watch-dialog').addEventListener('close',()=>$('export-video').pause());
 window.addEventListener('beforeunload',e=>{if(busy||saveError){e.preventDefault();e.returnValue='';}});

@@ -1,0 +1,19 @@
+/* Shared interface tokens. Video backgrounds are defined separately in src/render.js. */
+:root {
+  color-scheme: dark;
+  --bg: #101216;
+  --surface: #191c21;
+  --surface-raised: #242830;
+  --surface-hover: #323740;
+  --line: #343a44;
+  --control-line: #777f8e;
+  --text: #f3f5f7;
+  --muted: #aeb6c3;
+  --accent: #ff5056;
+  --accent-soft: #ff505625;
+  --accent-tint: #343a44;
+  --primary: #ff5056;
+  --primary-hover: #ff686c;
+  --on-primary: #101216;
+  --focus: #e4e9f2;
+}

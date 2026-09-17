@@ -1,4 +1,62 @@
-# QA evidence — 0.2.0
+# QA evidence
+
+## 0.6.0 real-recording release check (2026-09-17)
+
+Build `9d8671e5ad00`, 95 automated tests passing, `git diff --check` clean. The previously unavailable recording was restored by the owner and processed locally. The private source and rendered video are not release assets and are not committed.
+
+Source: 2560×1440 MP4, 180,544,199 bytes, approximately 477.05 s, no audio track. Automatic import completed analysis v5, found 97 visual focus points and 19 still intervals, then rendered the full recording with black phone overview/detail framing, pause speed-up off, Balanced size and 50 fps. Output: 1206×2622 MP4, 477.04 s, reported size 476.2 MiB, no audio as expected. The built-in browser player reached readyState 4 with matching dimensions and duration, without a media error. Sampled frames around 0, 24.55, 32 and 251.86 seconds decoded; the full-frame overview remained visible. At 24.55 s the detail crop covered the viewport's left-side information rather than the character; this illustrates that visual-change focus is not semantic tracking and may need manual correction. Other sampled detail frames showed the character. No browser warnings/errors were recorded.
+
+This closes the missing-real-recording processing gate for the experimental release, not every visual-quality or platform gate. No physical iPhone playback, installed-extension capture, Windows/Edge qualification or full audio synchronization test was performed in this pass. No performance benchmark or accuracy percentage is claimed. Gumroad account access was confirmed; GitHub's existing public main remained at v0.5.0 before publication. Final publication verification belongs in the release handoff.
+
+## 0.6.0 update identification and cancellation (2026-09-17)
+
+The previous verification completed the synthetic import → visual focus → MP4 path and opened the exported-video dialog. Output: 1206×2622, parsed duration 8.00 s; the browser decoded it at readyState 4 with duration 8.064 s and no media error. No browser warnings/errors were recorded. This is a synthetic fixture, not the missing user recording.
+
+Read-only comparison found an earlier 0.6.0 copy in Downloads/strela-screen: it lacked demo-worker.js and differed from the verified package. Its presence does not establish which folder Chrome has installed. No files in that folder were replaced.
+
+The editor and popup now display a version plus a 12-character identifier derived from runtime sources, UI, build scripts and the dependency lockfile. Identical inputs produce the same identifier; changed inputs require a new build before packaging. `build-info.json` records it in both ZIP layouts. Documentation-only changes do not change this runtime identifier. The packaging command was checked against stale inputs and correctly refused to create an archive.
+
+Build `9d8671e5ad00`: all 95 automated tests pass. New cancellation checks exercise abort before decoder construction, during metadata reads, timestamp lookup and sequential WebM fallback, along with disposal/listener cleanup. Controller tests cover same-ID reopen, delayed stale results, deferring thumbnail work while busy, no automatic retry loop after failure, and explicit Cancel leaving no scheduled thumbnail job. These use controlled decoder doubles; they are not long-video resource measurements.
+
+Browser verification of this build: the identifier was visible in the editor; the synthetic demo completed automatic analysis (4 points) and MP4 export at 1206×2622 / 8.00 s with an audio track. The output dialog opened and its video decoded at readyState 4, 8.064 s, without a media error. Timeline thumbnails were present after processing. Explicit export cancellation returned to the editor with the cancellation status; a subsequent manual export completed with the same output dimensions/duration. No warnings/errors were recorded. Both ZIPs contain 30 files and match the built directory byte for byte. Real-recording, installed-extension and platform gates remain open.
+
+## 0.6.0 processing follow-up (2026-09-17)
+
+Build and 78 automated tests pass, including worker cancellation/completion/error cleanup, unchanged paused-preview gating and pausing playback before a busy operation. `git diff --check` passes. Demo generation is now a dedicated packaged worker; analysis shares its job-lifecycle helper. These checks do not establish a measured performance improvement or the cause of the earlier browser timeout.
+
+Observed browser checks in this follow-up:
+
+- The pre-fix synthetic demo completed import, analysis (4 visual points) and automatic MP4 export at 1206×2622; video duration parsed as 8.00 s, audio track present. The browser decoded that MP4 at readyState 4, 1206×2622, with media-element duration 8.064 s and no media error. The audio fixture is intentionally silent.
+- After moving demo generation into a worker, the complete synthetic import again produced 4 points and an MP4 at 1206×2622 / 8.00 s with an audio track. Generate auto-focus then reported 4 points and restored them in the editable timeline.
+- Cancel demo returned to the editor with the cancellation message. Reopening the synthetic project from the local library preserved its source, phone canvas and focus points.
+- Cancel export returned to the editor; a subsequent export started normally. Its final completion was not observed because the test tab became unavailable. No browser warnings/errors had been observed before the last attempted check.
+
+Remaining release gate: the earlier real screen recording is no longer available at its supplied location; a replacement was requested. The current pass must not be described as a new real-recording or installed-extension/Windows/iPhone qualification. GitHub main and its public beta remain at 0.5.0; no release was pushed during this pass. Gumroad requires account sign-in before its product can be updated. Publication is paused pending the real-video check and access. Debug and deploy-checklist methods were used to separate reproduced behaviour, code-level defects and release gates.
+
+## 0.6.0 interface refinement (2026-09-17)
+
+Build and 65 automated tests pass. The shared graphite/red palette is checked for text contrast, primary-action prominence, field boundaries and keyboard focus. Measured token contrasts: primary text 5.83:1, primary action against panel 5.31:1, input border against raised surface 3.67:1, secondary text against panel 8.36:1. Tests also check unique controller IDs, import/record placement before preview, three settings groups and palette inclusion in the packaged editor/popup.
+
+Browser layout checked at 1280×720 and 390×844. At 390 px, document scrollWidth and clientWidth both equal 390; import, recording and export remain in the header area. Recording settings open and close from the relocated Record action, with the dialog fitting the narrow viewport. Video-processing code is unchanged by this design pass. This is not a physical-phone or cross-platform recording certification.
+
+The demo-generation check advanced into local attention analysis, but subsequent browser control calls timed out twice. No console warning/error was observed before that timeout. A completed import/export was not verified in this pass; the earlier 2026-09-12 export evidence below remains historical. The narrow-check tab's viewport override was reset; the processing tab could not be reached to reset its temporary 390×844 override.
+
+## 0.6.0 local verification (2026-09-12)
+
+Automated coverage: 61 tests, including 20 deterministic synthetic pixel-sequence scenarios. Run `npm test`; build with `npm run build`. Fixtures live in `tests/fixtures/attention-scenarios.mjs`, assertions in `tests/attention-regression.test.mjs` and `tests/corrections.test.mjs`.
+
+| Area | Test level | Coverage / acceptance |
+| --- | --- | --- |
+| Attention | Unit regression | 20 scenarios: static reading, caret, left/right/bottom controls, dialogs, large panels, cuts, sparse scrolling, competing changes, dominant action, reversible badge, action beside badge, typing, progress, rapid distant actions, distributed animation, delayed action, dim control. Every scenario asserts candidate count; localized targets also assert coordinates. |
+| Camera and formats | Model + renderer integration | Protected rectangle containment throughout sampled transitions, 3 source aspect ratios, 4 output aspects; no stretching or corner clipping at 720/1080/1206/2160. Existing continuity and follow tests retained. |
+| Editing and storage | Unit + archive integration | Per-point zoom/hold, cache invalidation, no merging of explicit overrides, preserved reading time through trims, undo, invalid imports, regeneration, `.strela` byte-exact source and edit round trip, stable IDs for legacy points. |
+| Browser | Manual integration | Synthetic WebM import automatically analysed and exported as MP4 1206×2622, 8.00 s, audio present. Manual focus time/hold/zoom, undo/redo, point relocation in preview, protected interval and area selection by percentages and dragging exercised. Reload restored saved corrections. Regeneration retained 4 points without duplicating manually edited cues. Second MP4 with corrections and protected area decoded in the built-in browser (readyState 4, 1206×2622). Interface checked at 1440×900 and 390×844; at 390 px document scrollWidth equalled clientWidth. No browser warning/error logs observed. |
+
+On the synthetic badge-only case, unfiltered per-frame detection produced 8 false candidates; v5 produced 0. With a new small action beside the badge, the prior detector produced 7 background candidates and missed the action; v5 produced 1 candidate at the action. Cumulative typing and progress retained all 6 expected candidates. These results concern constructed fixtures, not a real-world accuracy percentage.
+
+Limitations / remaining acceptance work: no corpus of 15–20 real application recordings has been collected in this pass; the 20 fixtures are synthetic pixel sequences, not real recordings. Reading/narration and arbitrary background video are not semantically recognized. Full Windows/Edge/Chrome recording workflows and physical iPhone playback require separate testing. A large protected area can make small text less readable by limiting zoom; no upscaler can reconstruct absent source detail. No new release was published in this pass.
+
+The testing-strategy skill informed the split between deterministic regression tests, archive/renderer integration and browser checks; passing units is not treated as visual or device certification.
 
 ## 0.5.0 frame rate, pauses, follow, store package
 

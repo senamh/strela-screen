@@ -4,15 +4,23 @@
 
 **Turn desktop recordings into phone-ready demos.** Import a video, let Strela find visual areas of attention, and download a styled MP4. Processing stays on your device.
 
-[Download 0.5.0 beta](https://github.com/senamh/strela-screen/releases/tag/v0.5.0) · [Русская инструкция](INSTALL_RU.md) · [Report an issue](https://github.com/senamh/strela-screen/issues)
+[0.6.0 beta release](https://github.com/senamh/strela-screen/releases/tag/v0.6.0) · [Русская инструкция](INSTALL_RU.md) · [Report an issue](https://github.com/senamh/strela-screen/issues)
 
-> Free public beta. Not a signed desktop app or store-listed extension. The local studio has been checked in Chrome on macOS; Windows/Edge and the installed extension still need qualification.
+> Free experimental browser beta, distributed through GitHub releases and Gumroad. Not a signed desktop app or store-listed extension. The local studio has been checked in Chrome on macOS; Windows/Edge and the installed extension still need qualification.
+
+## New in 0.6.0
+
+- Edit a focus point's time, hold and zoom, or move it in the preview. Manual corrections are retained when focus is regenerated.
+- Select a source rectangle to keep visible through camera transitions. Protect reading or narration intervals from optional pause speed-up.
+- Filter repeated reversible visual changes, with twenty deterministic synthetic regression scenarios. This is not semantic understanding or a real-recording accuracy benchmark.
+- A graphite interface with restrained red accents, clearer control states, grouped settings and recording/import actions above the preview.
+- Cancellable demo/analysis jobs, thumbnail cleanup during processing and a visible build identifier for reliable local updates.
 
 ## From desktop to phone
 
-- **Import → analyse → render.** Video imports automatically receive editable focus points, black phone framing and MP4 export. The finished video downloads on its own as `<project> - Strela.mp4`.
-- **Keep the context.** A full-frame overview remains above the detailed view. When analysis finds no reliable focus, the complete source is preserved without an invented crop.
-- **A camera that follows the story.** The frame arrives just before each action, stays on it afterwards, pans straight to the next nearby action instead of zooming out and back in, and zooms closer on small controls than on large panels. While it holds, it follows the work when it drifts towards the edge of the frame.
+- **Import → analyse → render.** After successful analysis, video imports receive editable focus points, black phone framing and MP4 export. The finished video downloads on its own as `<project> - Strela.mp4`. If analysis fails, automatic export pauses so you can retry or export the full frame.
+- **Keep the context.** When focus is available in phone mode, a full-frame overview remains above the detailed view. When analysis finds no reliable focus, the complete source is preserved without an invented crop.
+- **Smooth camera transitions.** The frame arrives before a detected focus point, holds afterwards and pans directly to a nearby next point. Magnification depends on the changed area's size; further localized changes can adjust the held frame. These are visual-change estimates, not recognition of every action.
 - **Skip the waiting.** Optionally play pauses where nothing on screen changes up to 16× faster, without touching your edit.
 - **Make it yours.** Smooth camera motion, five backgrounds including true black, four canvas layouts, editable focus and a non-destructive timeline.
 - **Keep it local.** No Strela account or upload service. Autosave in your browser and portable .strela project backups.
@@ -20,19 +28,19 @@
 
 ## Install in Chrome or Edge
 
-1. Download **strela-screen-0.5.0.zip** from the [release assets](https://github.com/senamh/strela-screen/releases/tag/v0.5.0) and extract it.
+1. Download **strela-screen-0.6.0.zip** from the [release assets](https://github.com/senamh/strela-screen/releases/tag/v0.6.0) and extract it.
 2. Open chrome://extensions or edge://extensions, enable Developer mode and choose **Load unpacked**.
 3. Select the extracted **strela-screen** folder containing manifest.json.
 4. Open the extension → **Open studio** → **Import** a video or **Try a demo**.
 5. Wait for analysis and rendering; the MP4 downloads when it is ready. **Save project** creates a `.strela` backup, not a video.
 
-For recording, use **Record**. Existing .strela files restore your saved edits rather than reprocessing them. Before updating, save project backups and reload the extension from its existing folder; uninstalling can erase its library.
+For recording, use **Record**, stop capture, review the generated focus and choose **Export video**. Existing .strela files restore your saved edits rather than reprocessing them. Before updating, save project backups and reload the extension from its existing folder; uninstalling can erase its library.
 
 ## What automatic analysis does — and does not do
 
 Strela uses conservative frame differences to find dominant local changes. It does **not** understand text, infer semantic importance or guarantee cursor recognition. Scrolls, scene cuts and scattered changes are generally rejected. Review generated focus before sharing.
 
-Imported videos default to a black 1206×2622 phone layout and MP4 at 50 fps for 25/50 fps sources or 60 fps otherwise, at the Balanced file size, about half the size of Best with the same text sharpness in our checks. Detail comes from the source, not the output dimensions: record at 1440p/4K with readable UI text when possible. Upscaling cannot recover missing detail. See [mobile guidance](MOBILE.md).
+Imported videos default to a black 1206×2622 phone layout and MP4 at 50 fps for 25/50 fps sources or 60 fps otherwise, at the Balanced file size. File size and text fidelity depend on the source and selected settings; the dated comparisons are recorded in [QA](QA.md). Detail comes from the source, not the output dimensions: record at 1440p/4K with readable UI text when possible. Upscaling cannot recover missing detail. See [mobile guidance](MOBILE.md).
 
 ## Build and test
 
@@ -46,7 +54,7 @@ npm run package   # release ZIP and Chrome Web Store ZIP in outputs/
 
 Open http://127.0.0.1:4173 for the local studio. Load **dist/strela-screen** for the extension. Localhost and the extension keep separate project libraries. Chrome 116 is the declared API minimum; use a current Chrome/Edge release. Safari and Firefox are unsupported.
 
-**32 automated tests pass.** Import → analysis → MP4 was also checked on synthetic fixtures and a real 8-minute screen recording. This is not cross-platform or physical-iPhone certification. [QA evidence](QA.md) · [Release notes](RELEASE_NOTES.md)
+Run **`npm test`** for the current automated suite (95 passing in this release). [QA evidence](QA.md) separates current checks from dated historical results. The 0.6.0 build completed automatic processing of a real 2560×1440, 7:57 screen recording on 17 September 2026: 97 focus points and a 1206×2622 MP4 at 50 fps, with the full duration preserved. Sampled playback is not a guarantee that every automatic focus is semantically correct, nor cross-platform or physical-iPhone certification. [Release notes](RELEASE_NOTES.md)
 
 ## Components and source
 

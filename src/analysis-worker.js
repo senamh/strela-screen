@@ -1,5 +1,5 @@
 import {Input,BlobSource,ALL_FORMATS,CanvasSink} from 'mediabunny';
-import {attention,attentionPoints,changeMap,quietRanges} from './attention.js';
+import {analyseAttention,attentionPoints,changeMap,quietRanges} from './attention.js';
 import {sampleFrames} from './frame-sampler.js';
 self.onmessage=async({data})=>{
  let input;
@@ -10,15 +10,15 @@ self.onmessage=async({data})=>{
   const times=[];for(let t=start;t<end;t+=step)times.push(t);
   // Decode sequentially: timestamp lookups return no frame between keyframes in
   // cue-less WebM written by MediaRecorder, which includes Strela's own recordings.
-  let previous=null,i=0;const candidates=[],samples=[];
+  let previous=null,i=0;const frames=[],samples=[];
   for await(const entry of sampleFrames(sink,times)){
     const c=entry.canvas,pixels=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
     // The change happened between the two samples, so its time is their midpoint.
-    if(previous){const map=changeMap(previous,pixels,c.width,c.height),hit=attention(previous,pixels,c.width,c.height,map);samples.push({t0:times[i-1],t1:times[i],fraction:map.fraction});if(hit)candidates.push({...hit,t:times[i]-step/2});}previous=pixels;
+    if(previous){const map=changeMap(previous,pixels,c.width,c.height);samples.push({t0:times[i-1],t1:times[i],fraction:map.fraction});frames.push({map,t:times[i]-step/2});}previous=pixels;
     i++;if(i%4===0)self.postMessage({type:'progress',progress:i/times.length});
   }
   // Every hit feeds the camera's follow track; the sparser points seed editable shots.
-  const follow=candidates.map(h=>[+h.t.toFixed(3),+h.x.toFixed(4),+h.y.toFixed(4)]);
-  self.postMessage({type:'done',points:attentionPoints(candidates),samples:i,quiet:quietRanges(samples),track:follow,version:4});
+  const {candidates,suppressed}=analyseAttention(frames),follow=candidates.map(h=>[+h.t.toFixed(3),+h.x.toFixed(4),+h.y.toFixed(4)]);
+  self.postMessage({type:'done',points:attentionPoints(candidates),samples:i,quiet:quietRanges(samples),track:follow,suppressed,version:5});
  }catch(e){self.postMessage({type:'error',error:e.message});}finally{input?.dispose();}
 };

@@ -1,5 +1,7 @@
 # Chrome Web Store listing
 
+Draft for the 0.6.0 experimental browser beta. This is not a published or approved store listing; GitHub and Gumroad publication are separate steps.
+
 Upload `outputs/strela-screen-<version>-store.zip` (manifest at the archive root). Assets are in this folder.
 
 ## Store listing
@@ -17,55 +19,59 @@ Upload `outputs/strela-screen-<version>-store.zip` (manifest at the archive root
 
 ### Description (English)
 
-Strela Screen turns a desktop screen recording into a vertical video for Reels, TikTok and Shorts, with no manual editing.
+Strela Screen creates an editable vertical video from a desktop screen recording, with automatic visual-change analysis and local export.
 
-Import a recording, or record your screen, a window or a browser tab. Strela finds where the screen changes, zooms smoothly into each action and exports an MP4: the full screen on top and a close-up below, on a true black background. Everything runs in your browser. Your video is never uploaded.
+Import a recording, or record your screen, a window or a browser tab. Strela finds localized visual changes and places editable focus points. The phone layout includes a full-screen overview and a smoothly moving close-up on a true black background. If no reliable focus is found, it preserves the complete source. Everything runs in your browser. Your video is never uploaded.
 
 HOW IT WORKS
 1. Open the studio from the toolbar and click Import, or Record.
 2. Strela analyses the video on your device and places focus points.
-3. The finished MP4 downloads as "<project> - Strela.mp4".
+3. After successful import analysis, an MP4 is rendered and downloaded as "<project> - Strela.mp4". For a new recording, review the focus and choose Export video. If analysis fails, retry it or export the complete frame.
 
 WHAT YOU GET
-• Automatic focus that arrives just before each action, stays on it and pans straight to the next one
+• Smooth transitions before and after detected focus points, with direct pans between nearby points
 • Zoom that fits the changed area: close on small controls, wider on large panels
 • Phone layout at 1206×2622, plus landscape, portrait and square
 • Optional speed-up for pauses where nothing on screen changes
 • Timeline to split, trim and remove parts
 • MP4, WebM or short GIF, with Best, Balanced or Small file size
 • Local projects with autosave and .strela backups
+• Editable focus time, hold and zoom; a protected source area and original-pace intervals
+• Graphite panels, red accents and grouped video settings
 
 GOOD TO KNOW
-• Focus comes from visual changes in the frame, not from reading text or tracking the cursor, so review it before you publish. You can move or add focus points by clicking the video.
+• Visual analysis does not read text or guarantee cursor recognition; browser-tab recordings can also use recorded click cues. Review the focus before publishing. Select a focus point to edit it or use Move in preview; click the paused preview to add a point.
 • Small text needs a sharp source recording.
-• Tested in Chrome on macOS. Edge and Windows are expected to work.
+• Local studio checks have been performed in Chrome on macOS. Installed-extension workflows, Edge, Windows and physical-phone playback still need qualification. See the dated QA report for exact coverage.
 
-Free and open source: https://github.com/senamh/strela-screen
+Free experimental beta with a public source repository: https://github.com/senamh/strela-screen . Public source access is not an open-source license grant for Strela's original code. Bundled third-party libraries retain their own licenses.
 
 ### Description (Russian, optional second language)
 
-Strela Screen превращает запись экрана компьютера в вертикальный ролик для Reels, TikTok и Shorts без ручного монтажа.
+Strela Screen создаёт редактируемый вертикальный ролик из записи экрана компьютера с автоматическим анализом изменений изображения и локальным экспортом.
 
-Импортируйте готовую запись или запишите экран, окно или вкладку браузера. В видео определяются места, где меняется изображение, к каждому действию выполняется плавное приближение, и результат сохраняется в MP4: сверху весь экран, снизу увеличенная область на чёрном фоне. Обработка выполняется в браузере, видео никуда не загружается.
+Импортируйте готовую запись или запишите экран, окно или вкладку браузера. По локальным изменениям изображения расставляются редактируемые точки фокуса. В формате телефона сверху показан весь экран, снизу увеличенная область на чёрном фоне. Если надёжные точки фокуса не найдены, исходный кадр сохраняется полностью. Обработка выполняется в браузере, видео никуда не загружается.
 
 КАК ЭТО РАБОТАЕТ
 1. Откройте студию из панели браузера и нажмите Import или Record.
 2. Видео анализируется на вашем компьютере, точки фокуса расставляются автоматически.
-3. Готовый MP4 скачивается под именем «имя проекта - Strela.mp4».
+3. После успешного анализа импортированного видео создаётся MP4 под именем «имя проекта - Strela.mp4» и начинается скачивание. После новой записи проверьте фокус и нажмите Export video. При ошибке анализа повторите его или экспортируйте полный кадр.
 
 ВОЗМОЖНОСТИ
-• Приближение завершается перед действием, сохраняется после него и напрямую переходит к следующему действию
+• Плавные переходы до и после найденных точек фокуса, прямое перемещение между близкими точками
 • Масштаб зависит от размера изменившейся области
 • Вертикальный формат 1206×2622, а также горизонтальный, портретный и квадратный
 • Ускорение пауз, в которых изображение не меняется, включается по желанию
 • Таймлайн для разрезки, обрезки и удаления фрагментов
 • MP4, WebM или короткий GIF с выбором размера файла
 • Локальные проекты с автосохранением и резервными копиями .strela
+• Настройка времени, удержания и масштаба каждой точки, защита выбранной области и интервалов чтения
+• Графитовые панели, красные акценты и группировка настроек
 
 ОГРАНИЧЕНИЯ
-• Фокус определяется по изменениям изображения, без распознавания текста и курсора, поэтому перед публикацией результат стоит проверить. Точки фокуса можно переставить щелчком по видео.
+• Анализ изображения не распознаёт текст и не гарантирует обнаружение курсора. В записях вкладки также могут использоваться сохранённые координаты кликов. Перед публикацией проверьте результат. Выберите точку для редактирования или переноса через Move in preview; щелчок по остановленному видео добавляет новую точку.
 • Для мелкого текста нужна чёткая исходная запись.
-• Проверено в Chrome на macOS.
+• Локальная студия проверялась в Chrome на macOS. Работа установленного расширения, Edge, Windows и воспроизведение на физическом смартфоне требуют отдельной проверки. Даты и объём проверок приведены в QA.md.
 
 ## Privacy practices tab
 
