@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
-  <title id="title">Strela Screen beta 0.6.1</title>
+  <title id="title">Strela Screen beta 0.6.2</title>
   <desc id="desc">Screen recordings, ready for a phone. Graphite and red artwork with an explicitly labelled illustration of a full-frame overview above an editable detail view. Video processing is local; automatic focus must be reviewed.</desc>
   <rect width="1280" height="640" fill="#101216"/>
   <path d="M837 48V592" stroke="#2d333e"/>
@@ -10,7 +10,7 @@
   <g font-family="Arial,Helvetica,sans-serif" fill="#f3f5f7">
     <text x="141" y="94" font-size="36" font-weight="700" letter-spacing="-1">strela screen</text>
     <rect x="62" y="162" width="124" height="30" rx="15" fill="#202630" stroke="#404957"/>
-    <text x="80" y="182" font-size="12" font-weight="700" letter-spacing="1">BETA 0.6.1</text>
+    <text x="80" y="182" font-size="12" font-weight="700" letter-spacing="1">BETA 0.6.2</text>
     <text x="58" y="273" font-size="60" font-weight="700" letter-spacing="-2">Screen recordings,</text>
     <text x="58" y="341" font-size="60" font-weight="700" letter-spacing="-2">ready for a phone.</text>
     <text x="62" y="400" font-size="23" fill="#aeb6c3">Import or record. Review focus. Export.</text>

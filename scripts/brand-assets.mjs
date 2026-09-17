@@ -14,7 +14,7 @@ const svg=(w,h,body)=>`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" heig
 const icon=(x,y,size)=>`<g transform="translate(${x} ${y}) scale(${size/128})">${iconBody}</g>`;
 const text=(x,y,size,value,fill=colors.text,weight=400)=>`<text x="${x}" y="${y}" font-size="${size}" font-weight="${weight}" fill="${fill}">${value}</text>`;
 const header=(x=56,y=42)=>icon(x,y,54)+text(x+70,y+38,31,'strela screen',colors.text,700);
-const badge=(x,y)=>`<rect x="${x}" y="${y}" width="124" height="30" rx="15" fill="#202630" stroke="${colors.line}"/>${text(x+18,y+20,12,'BETA 0.6.1',colors.muted,700)}`;
+const badge=(x,y)=>`<rect x="${x}" y="${y}" width="124" height="30" rx="15" fill="#202630" stroke="${colors.line}"/>${text(x+18,y+20,12,'BETA 0.6.2',colors.muted,700)}`;
 
 // Schematic source image. This is not an editor screenshot or a quality claim.
 function dashboard(x,y,w){
@@ -55,7 +55,7 @@ const promo=svg(440,280,
   icon(20,19,36)+text(69,45,21,'strela screen',colors.text,700)+
   text(22,112,26,'Screen recordings,',colors.text,700)+text(22,145,26,'ready for a phone.',colors.text,700)+
   text(24,189,14,'Local video processing',colors.muted)+text(24,211,13,'Editable focus',colors.muted)+
-  text(24,256,12,'BETA 0.6.1',colors.muted,700)+phone(326,64,88)+
+  text(24,256,12,'BETA 0.6.2',colors.muted,700)+phone(326,64,88)+
   text(329,269,9,'ILLUSTRATION',colors.muted));
 const marquee=svg(1400,560,
   header()+badge(604,55)+
@@ -109,4 +109,4 @@ const gumroadCover=coverSource.replace('height="640" viewBox="0 0 1280 640"','he
 await sharp(Buffer.from(gumroadCover)).png().toFile(outputPath('docs/gumroad-cover.png'));
 await sharp(Buffer.from(thumbnail)).png().toFile(outputPath('docs/gumroad-thumbnail.png'));
 for(const [name,source] of [['promo-440x280',promo],['marquee-1400x560',marquee],['screenshot-1-before-after',beforeAfter],['screenshot-2-phone',phoneDetail]])await sharp(Buffer.from(source)).png().toFile(outputPath(`store/${name}.png`));
-console.log('Built beta 0.6.1 GitHub/Gumroad covers, thumbnail, shared arrow icons and labelled store illustrations.');
+console.log('Built beta 0.6.2 GitHub/Gumroad covers, thumbnail, shared arrow icons and labelled store illustrations.');

@@ -1,4 +1,8 @@
-# Strela Screen 0.6.1: unified interface and reproducible releases
+# Strela Screen 0.6.2: extension popup width
+
+The toolbar popup now uses a fixed 340 px layout. Its heading, description and Open studio button no longer collapse into a narrow column. No recording, analysis or export logic changed. Install `strela-screen-0.6.2.zip` and reload the existing extension after saving project backups. The previous [0.6.1 release](https://github.com/senamh/strela-screen/releases/tag/v0.6.1) remains available.
+
+## Previous release: 0.6.1
 
 Free experimental browser beta. Install the unpacked extension in current Chrome or Edge. This is not an approved store listing or a signed desktop application.
 

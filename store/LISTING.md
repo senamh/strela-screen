@@ -1,6 +1,6 @@
 # Chrome Web Store listing
 
-Draft for the 0.6.1 experimental browser beta. This is not a published or approved store listing; GitHub and Gumroad publication are separate steps.
+Draft for the 0.6.2 experimental browser beta. This is not a published or approved store listing; GitHub and Gumroad publication are separate steps.
 
 Upload `outputs/strela-screen-<version>-store.zip` (manifest at the archive root). Assets are in this folder.
 

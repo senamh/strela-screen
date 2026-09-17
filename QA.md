@@ -1,5 +1,9 @@
 # QA evidence
 
+## 0.6.2 extension popup layout (2026-09-17)
+
+The toolbar popup was reported as a narrow column in Chrome. Its `max-width: 100vw` could constrain the body to an initially narrow popup viewport. The body and document now keep a 340 px width, and the primary button keeps its label on one line. At a 340×440 browser viewport, the popup body and document scroll width were 340 px, the button was 292 px wide, and the heading occupied two intended lines. The popup was inspected visually. All 118 automated tests passed. No recording or export logic changed. This browser viewport check does not establish that the owner's installed extension has been reloaded; its build label must be compared after updating the installed folder.
+
 ## 0.6.1 design and publication checks (2026-09-17)
 
 Final runtime build: `69648fab9a6c`; 118 automated tests pass. `git diff --check` is clean. The reproducible packaging/publication command reruns the suite after the final commit.
