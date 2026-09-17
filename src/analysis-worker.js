@@ -12,7 +12,7 @@ self.onmessage=async({data})=>{
   // cue-less WebM written by MediaRecorder, which includes Strela's own recordings.
   let previous=null,i=0;const frames=[],samples=[];
   for await(const entry of sampleFrames(sink,times)){
-    const c=entry.canvas,pixels=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
+    const c=entry.canvas,pixels=c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,c.width,c.height).data;
     // The change happened between the two samples, so its time is their midpoint.
     if(previous){const map=changeMap(previous,pixels,c.width,c.height);samples.push({t0:times[i-1],t1:times[i],fraction:map.fraction});frames.push({map,t:times[i]-step/2});}previous=pixels;
     i++;if(i%4===0)self.postMessage({type:'progress',progress:i/times.length});

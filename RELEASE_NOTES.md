@@ -1,6 +1,16 @@
-# Strela Screen 0.6.2: extension popup width
+# Strela Screen 0.6.3: safer automatic focus and export download
 
-The toolbar popup now uses a fixed 340 px layout. Its heading, description and Open studio button no longer collapse into a narrow column. No recording, analysis or export logic changed. Install `strela-screen-0.6.2.zip` and reload the existing extension after saving project backups. The previous [0.6.1 release](https://github.com/senamh/strela-screen/releases/tag/v0.6.1) remains available.
+Automatically detected focus in wide recordings now retains at least about 78% of the source width unless a person explicitly changes that point's zoom. Peripheral redraws no longer pull a fully automatic wide shot away from its planned focus. This reduces accidental cropping but does not identify which page content matters. Manual corrections and phone framing are unchanged.
+
+Every successful manual MP4, WebM or GIF render now requests a download after validating the file. The Download video button remains available if the browser does not start it. Repeated canvas readback warnings during video analysis and GIF rendering are addressed.
+
+The supplied 31.42-second MP4 decoded fully in a software decoder. Visual inspection found cropped headings around 22 and 26–29 seconds. The original recording and its editable focus project were unavailable, so that exact project was not rerendered. A synthetic eight-second import and manual export completed in the local browser; that browser did not expose a download event even for a manual click. Download behavior in an installed Chrome extension still requires direct verification. Windows/Edge and physical-iPhone checks remain open.
+
+Install `strela-screen-0.6.3.zip` and reload the existing extension after saving project backups. The previous [0.6.2 release](https://github.com/senamh/strela-screen/releases/tag/v0.6.2) remains available.
+
+## Previous release: 0.6.2
+
+The toolbar popup keeps its intended 340 px width so its heading and Open studio button remain readable.
 
 ## Previous release: 0.6.1
 

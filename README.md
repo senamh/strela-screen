@@ -4,9 +4,15 @@
 
 **Turn desktop recordings into phone-ready demos.** Import a video, let Strela find visual areas of attention, and download a styled MP4. Processing stays on your device.
 
-[Download 0.6.2 beta](https://github.com/senamh/strela-screen/releases/download/v0.6.2/strela-screen-0.6.2.zip) · [Gumroad](https://shaurma.gumroad.com/l/strela-screen) · [Русская инструкция](INSTALL_RU.md) · [Report an issue](https://github.com/senamh/strela-screen/issues)
+[Download 0.6.3 beta](https://github.com/senamh/strela-screen/releases/download/v0.6.3/strela-screen-0.6.3.zip) · [Gumroad](https://shaurma.gumroad.com/l/strela-screen) · [Русская инструкция](INSTALL_RU.md) · [Report an issue](https://github.com/senamh/strela-screen/issues)
 
 > Free experimental browser beta, distributed through GitHub releases and Gumroad. Not a signed desktop app or store-listed extension. The local studio has been checked in Chrome on macOS; Windows/Edge and the installed extension still need qualification.
+
+## New in 0.6.3
+
+- Wide recordings retain more page context around automatically detected focus; redraws no longer pull an entirely automatic wide shot towards peripheral interface changes. Manual zoom and phone framing remain adjustable.
+- Successful manual exports now request a download automatically, as imported videos already did. A Download video button remains available if the browser blocks it.
+- Frequent pixel-readback warnings from the analysis and GIF canvases are addressed.
 
 ## New in 0.6.2
 
@@ -38,7 +44,7 @@
 
 ## Install in Chrome or Edge
 
-1. Download **strela-screen-0.6.2.zip** from the [release assets](https://github.com/senamh/strela-screen/releases/tag/v0.6.2) and extract it.
+1. Download **strela-screen-0.6.3.zip** from the [release assets](https://github.com/senamh/strela-screen/releases/tag/v0.6.3) and extract it.
 2. Open chrome://extensions or edge://extensions, enable Developer mode and choose **Load unpacked**.
 3. Select the extracted **strela-screen** folder containing manifest.json.
 4. Open the extension → **Open studio** → **Import** a video or **Try a demo**.

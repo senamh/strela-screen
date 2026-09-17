@@ -6,7 +6,7 @@ import {saveProject,allProjects,allChunks,projectArchive,readArchive} from './st
 import {analyzeVideo} from './analyze.js';
 import {createCorrections} from './corrections.js';
 import {needsPreviewFrame,watchPreviewInvalidation,primePreviewFrame} from './preview-state.js';
-let analysisController=null,demoController=null,autoDownload=false,previewDirty=true,paintedTime=-1;
+let analysisController=null,demoController=null,previewDirty=true,paintedTime=-1;
 let thumbnailController=null,thumbnailTimer=null,thumbnailPending=false,thumbnailGeneration=0;
 const $=id=>document.getElementById(id),video=$('video'),canvas=$('preview');
 $('build-info').textContent=__STRELA_BUILD_LABEL__;
@@ -24,7 +24,7 @@ if(isExtension)chrome.runtime.onMessage.addListener((m,sender)=>{
 const plays=()=>timeline(project);
 const clock=t=>`${String(Math.floor(t/60)).padStart(2,'0')}:${String(Math.floor(t%60)).padStart(2,'0')}`;
 function editing(){return !!project&&!busy;}
-function download(data,name){const u=URL.createObjectURL(data),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),60000);}
+function download(data,name){const u=URL.createObjectURL(data),a=document.createElement('a');a.href=u;a.download=name;document.body.append(a);try{a.click();}finally{a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);}}
 function filename(){return (project?.name||'strela').replace(/[^\p{L}\p{N}_ -]/gu,'').trim().slice(0,70)||'strela';}
 function setBusy(value){if(value){stopPlayback();cancelThumbnails();}busy=value;previewDirty=true;document.querySelectorAll('main button,main input,main select,.topbar button,.topbar input').forEach(e=>e.disabled=value);refreshButtons();if(!value)queueThumbnails();}
 function cancelThumbnails(){
@@ -157,7 +157,7 @@ async function importMedia(file){if(!file||busy)return;setBusy(true);let renderA
   }
  }catch(error){say(error.name==='AbortError'?'Analysis cancelled. Original video remains available.':error.message);}
  finally{setBusy(false);}
- if(renderAfter){$('format').value='mp4';$('resolution').value='1206';$('fps').value=String(project.settings.fps);$('size').value=project.settings.size;autoDownload=true;$('start-export').click();}
+ if(renderAfter){$('format').value='mp4';$('resolution').value='1206';$('fps').value=String(project.settings.fps);$('size').value=project.settings.size;$('start-export').click();}
 }
 $('file').onchange=async e=>{try{await importMedia(e.target.files[0]);}finally{e.target.value='';}};
 $('save').onclick=async()=>{if(!editing())return;setBusy(true);try{say('Packing project and original video…');download(await projectArchive(project,blob),filename()+'.strela');say('Project backup ready. It includes the original video.');}catch(e){say(e.message);}finally{setBusy(false);}};
@@ -186,10 +186,8 @@ $('progress-dialog').addEventListener('cancel',e=>e.preventDefault());
 $('start-export').onclick=()=>{
   if(!editing())return;stopPlayback();const format=$('format').value;project.settings.resolution=Number($('resolution').value);project.settings.fps=Number($('fps').value);project.settings.size=$('size').value;saveLocal();$('export-dialog').close();setBusy(true);$('progress-title').textContent='Rendering your video…';$('progress-label').textContent='Preparing codecs';$('progress').value=0;$('cancel').hidden=false;$('cancel').textContent='Cancel export';$('progress-dialog').showModal();
   $('export-result').hidden=true;
-  // Only the automatic import render saves on its own; manual exports wait for Download.
-  const saveAfter=autoDownload;autoDownload=false;
   const exportProject=currentSnapshot();
-  try{worker=new Worker('export-worker.js',{type:'module'});}catch(e){finishExport();say('Export could not start: '+e.message);return;}const activeWorker=worker;
+  try{worker=new Worker('export-worker.js',{type:'module'});}catch(e){finishExport();say('Export could not start: '+e.message);return;}const activeWorker=worker;let resultPending=false;
   worker.onerror=e=>{if(worker!==activeWorker)return;finishExport();say('Export failed: '+e.message);};
   worker.onmessageerror=()=>{if(worker!==activeWorker)return;finishExport();say('Export failed: the result could not be read. Retry the export.');};
   worker.onmessage=async({data})=>{
@@ -197,6 +195,7 @@ $('start-export').onclick=()=>{
     if(data.type==='progress'){$('progress').value=data.progress;$('progress-label').textContent=Math.round(data.progress*100)+'% · frames and audio';}
     if(data.type==='error'){finishExport();say(data.error);}
     if(data.type==='done'){
+      if(resultPending)return;resultPending=true;
       try{
         const candidate=new Blob([data.buffer],{type:data.mime});
         const meta=data.mime==='image/gif'?data.summary:await inspect(candidate,{decode:false});
@@ -210,8 +209,9 @@ $('start-export').onclick=()=>{
         if(data.mime==='image/gif')$('export-image').src=exportURL;
         $('export-result').hidden=false;$('export-details').textContent=`${meta.width} × ${meta.height} · ${meta.duration.toFixed(2)}s · ${meta.audio?'audio included':'no audio'} · ${(exportBlob.size/1024/1024).toFixed(1)} MB`;
         // A distinct name keeps the render apart from a source file with the same project name.
-        $('download-export').onclick=()=>download(exportBlob,filename()+' - Strela.'+format);if(saveAfter)$('download-export').click();
-        say((data.mime==='image/gif'?'GIF rendered. Watch or download it below.':'Export passed duration, dimensions and audio-track checks. Watch or download it below.')+(data.codec==='hevc'?' Encoded as HEVC (H.265): H.264 does not support this frame size.':'')+(exportProject.points.length?'':' No focus points, so the video keeps the full frame.')+(saveAfter?` Download started: ${filename()} - Strela.${format}`:''));
+        $('download-export').onclick=()=>download(exportBlob,filename()+' - Strela.'+format);
+        $('download-export').click();
+        say((data.mime==='image/gif'?'GIF rendered.':'Export passed duration, dimensions and audio-track checks.')+(data.codec==='hevc'?' Encoded as HEVC (H.265): H.264 does not support this frame size.':'')+(exportProject.points.length?'':' No focus points, so the video keeps the full frame.')+` Download requested: ${filename()} - Strela.${format}. If your browser blocked it, use Download video below.`);
       }catch(e){if(worker===activeWorker)say('Output validation failed: '+e.message);}
       finally{if(worker===activeWorker)finishExport();}
     }

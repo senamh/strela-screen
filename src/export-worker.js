@@ -14,7 +14,7 @@ self.onmessage=async({data})=>{
     if(!vt||!await vt.canDecode())throw new Error('This video cannot be decoded. Try importing an MP4 or WebM recorded in Chrome.');
     if(data.format==='gif'){
       const total=duration(clips);if(total>60)throw new Error('GIF exports are limited to 60 seconds. Trim the video or export MP4.');
-      const [w,h]=size(p.settings.ratio,360),canvas=new OffscreenCanvas(w,h),ctx=canvas.getContext('2d'),sink=new CanvasSink(vt,{poolSize:2}),gif=GIFEncoder(),count=Math.ceil(total*15);
+      const [w,h]=size(p.settings.ratio,360),canvas=new OffscreenCanvas(w,h),ctx=canvas.getContext('2d',{willReadFrequently:true}),sink=new CanvasSink(vt,{poolSize:2}),gif=GIFEncoder(),count=Math.ceil(total*15);
       const times=function*(){for(let i=0;i<count;i++)yield Math.max(p.mediaStart||0,sourceTime(clips,i/15));};let i=0;
       for await(const entry of sampleFrames(sink,times(),{jump})){
         if(!entry)throw new Error('Missing GIF source frame.');render(canvas,entry.canvas,p.width,p.height,p,sourceTime(clips,i/15));

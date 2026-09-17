@@ -66,14 +66,14 @@ const paths=new Map();
 function timelineClamp(clips,t){let elapsed=0;for(const c of clips){if(t<c.start)return elapsed;if(t<c.end)return elapsed+(t-c.start)/rate(c);elapsed+=(c.end-c.start)/rate(c);}return elapsed;}
 function shots(points){
   const out=[];
-  for(const p of points){const last=out.at(-1);if(last&&last.zoom===undefined&&last.hold===undefined&&p.zoom===undefined&&p.hold===undefined&&p.t-last.t1<MERGE_T&&Math.hypot(p.x-last.x,p.y-last.y)<MERGE_D){const n=last.n+1;last.x=(last.x*last.n+p.x)/n;last.y=(last.y*last.n+p.y)/n;last.t1=p.t;last.n=n;if(p.w>0&&p.h>0){last.w=Math.max(last.w||0,p.w);last.h=Math.max(last.h||0,p.h);}}else out.push({t0:p.t,t1:p.t,x:p.x,y:p.y,w:p.w,h:p.h,zoom:p.zoom,hold:p.hold,n:1});}
+  for(const p of points){const last=out.at(-1),automatic=p.auto===true;if(last&&last.automatic===automatic&&last.zoom===undefined&&last.hold===undefined&&p.zoom===undefined&&p.hold===undefined&&p.t-last.t1<MERGE_T&&Math.hypot(p.x-last.x,p.y-last.y)<MERGE_D){const n=last.n+1;last.x=(last.x*last.n+p.x)/n;last.y=(last.y*last.n+p.y)/n;last.t1=p.t;last.n=n;if(p.w>0&&p.h>0){last.w=Math.max(last.w||0,p.w);last.h=Math.max(last.h||0,p.h);}}else out.push({t0:p.t,t1:p.t,x:p.x,y:p.y,w:p.w,h:p.h,zoom:p.zoom,hold:p.hold,automatic,n:1});}
   return out;
 }
 function plan(points,settings,bw,bh){
   const sticky=bw<.98||bh<.98,list=shots(points),keys=[];
   const crop=(x,y,z)=>{const w=bw/z,h=bh/z;return {x:clamp(x-w/2,0,1-w),y:clamp(y-h/2,0,1-h),w,h};};
   // Visual changes carry their changed area: small controls get a closer shot, large panels a wider one.
-  const shot=s=>crop(s.x,s.y,s.zoom??(s.w>0&&s.h>0?clamp(.6*Math.min(bw/s.w,bh/s.h),1+(settings.zoom-1)*.4,settings.zoom):settings.zoom));
+  const shot=s=>{const zoom=s.zoom??(s.w>0&&s.h>0?clamp(.6*Math.min(bw/s.w,bh/s.h),1+(settings.zoom-1)*.4,settings.zoom):settings.zoom);return crop(s.x,s.y,s.automatic&&!sticky?Math.min(zoom,1.28):zoom);};
   const rest=s=>crop(sticky&&s?s.x:.5,sticky&&s?s.y:.5,1);
   const key=(t,r)=>keys.push({t:keys.length?Math.max(t,keys.at(-1).t):t,r});
   // One crop object per shot: the path treats consecutive keys sharing a crop as a hold.
@@ -102,9 +102,12 @@ function chase(x,v,goal,dt){const y=x-goal,e=Math.exp(-OMEGA*dt),a=v+OMEGA*y;ret
 const trackIds=new WeakMap();
 function trackId(track){if(!track.length)return '';if(!trackIds.has(track))trackIds.set(track,JSON.stringify(track));return trackIds.get(track);}
 function path(points,track,settings,width,height,aspect){
-  const id=JSON.stringify([points.map(p=>[p.t,p.x,p.y,p.w,p.h,p.zoom,p.hold]),settings.zoom,settings.hold,width,height,aspect])+trackId(track);
+  const id=JSON.stringify([points.map(p=>[p.t,p.x,p.y,p.w,p.h,p.zoom,p.hold,p.auto,p.origin]),settings.zoom,settings.hold,width,height,aspect])+trackId(track);
   if(paths.has(id))return paths.get(id);
   const bw=Math.min(width,height*aspect)/width,bh=Math.min(width/aspect,height)/height,keys=plan(points,settings,bw,bh);
+  // Pixel changes do not establish semantic importance. For an entirely automatic wide edit,
+  // keep the planned framing instead of chasing subsequent redraws towards peripheral UI.
+  if(bw>=.98&&bh>=.98&&points.length&&points.every(p=>p.auto&&p.origin==='visual-change'&&p.zoom===undefined))track=[];
   const count=Math.ceil((keys.at(-1).t+2)*RATE)+1,data=new Float64Array(count*3),v=[0,0,0],c=[];
   // A follow shift eases from where the frame is to its new offset over FOLLOW.move seconds.
   let seg=0,held=null,shift={fx:0,fy:0,tx:0,ty:0,t0:0,d:FOLLOW.move},next=0;
